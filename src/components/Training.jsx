@@ -14,9 +14,9 @@ const TYPES = [
 ];
 
 const today = () => new Date().toISOString().slice(0, 10);
-const I = "p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none w-full";
+const I = "h-[42px] p-2 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none w-full";
 const L = "block text-[10px] text-dim font-bold uppercase tracking-wider mb-0.5";
-const TB = (on, color) => `px-3 py-2.5 rounded-lg font-bold text-xs cursor-pointer border ${on ? `bg-${color || 'acc'} text-bg border-${color || 'acc'}` : 'bg-bg text-dim border-brd'}`;
+const TG = (on, c='acc') => `h-[42px] flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border w-full ${on ? `bg-${c} text-bg border-${c}` : 'bg-bg text-dim border-brd'}`;
 
 export default function Training({ editEntry, onDone }) {
   const [selType, setSelType] = useState(null);
@@ -125,12 +125,12 @@ export default function Training({ editEntry, onDone }) {
       {savedCount > 0 && !saved && <div className="text-[10px] text-dim mb-2 text-center">{savedCount} Übung(en) eingetragen</div>}
 
       {/* Datum + Übung row */}
-      <div className="flex gap-3 mb-3">
-        <div style={{ width: 130, flexShrink: 0 }}>
+      <div className="grid gap-2 mb-3" style={{ gridTemplateColumns: '130px 1fr' }}>
+        <div className="overflow-hidden">
           <label className={L}>Datum</label>
-          <input type="date" value={form.datum} onChange={e => setForm({...form, datum: e.target.value})} className={I} style={{ fontSize: 13 }} />
+          <input type="date" value={form.datum} onChange={e => setForm({...form, datum: e.target.value})} className={I} style={{ fontSize: 13, padding: '0 6px' }} />
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="overflow-hidden">
           <label className={L}>Übung</label>
           <input value={form.uebung} onChange={e => { setForm({...form, uebung: e.target.value}); setShowSug(true); }} onFocus={() => setShowSug(true)} placeholder="z.B. Beinpresse" className={I} />
         </div>
@@ -144,7 +144,7 @@ export default function Training({ editEntry, onDone }) {
           <div className="col-span-2">
             <label className={L}>Gerät</label>
             <button onClick={() => setForm({...form, geraet: form.geraet === 'Kabelzug' ? 'Maschine' : 'Kabelzug'})}
-              className={`w-full p-2.5 rounded-lg font-bold text-xs cursor-pointer border bg-acc text-bg border-acc`}>
+              className={`w-full h-[42px] flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border bg-acc text-bg border-acc`}>
               {form.geraet === 'Kabelzug' ? 'Kabelzug' : 'Maschine'} ⇄
             </button>
           </div>
@@ -155,7 +155,7 @@ export default function Training({ editEntry, onDone }) {
           <div>
             <label className={L}>&nbsp;</label>
             <button onClick={() => setGewUnit(gewUnit === 'kg' ? 'stufe' : 'kg')}
-              className={`w-full p-2.5 rounded-lg font-bold text-xs cursor-pointer border ${gewUnit === 'kg' ? 'bg-acc text-bg border-acc' : 'bg-corange text-bg border-corange'}`}>
+              className={`w-full h-[42px] flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border ${gewUnit === 'kg' ? 'bg-acc text-bg border-acc' : 'bg-corange text-bg border-corange'}`}>
               {gewUnit === 'kg' ? 'kg' : 'Stufe'} ⇄
             </button>
           </div>
@@ -163,7 +163,7 @@ export default function Training({ editEntry, onDone }) {
         <div className="grid grid-cols-4 gap-2 mb-3">
           <div className="col-span-2">
             <label className={L}>Sätze</label>
-            <div className="flex items-center bg-bg border border-brd rounded-lg">
+            <div className="h-[42px] flex items-center bg-bg border border-brd rounded-lg">
               <button onClick={() => setForm({...form, saetze: Math.max(1, form.saetze-1)})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">−</button>
               <span className="flex-1 text-center text-base font-bold">{form.saetze}</span>
               <button onClick={() => setForm({...form, saetze: form.saetze+1})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">+</button>
@@ -176,7 +176,7 @@ export default function Training({ editEntry, onDone }) {
           <div>
             <label className={L}>&nbsp;</label>
             <button onClick={() => setForm({...form, einseitig: !form.einseitig})}
-              className={`w-full p-2.5 rounded-lg font-bold text-[10px] cursor-pointer border ${form.einseitig ? 'bg-gold text-bg border-gold' : 'bg-bg text-dim border-brd'}`}>
+              className={`w-full h-[42px] flex items-center justify-center rounded-lg font-bold text-[10px] cursor-pointer border ${form.einseitig ? 'bg-gold text-bg border-gold' : 'bg-bg text-dim border-brd'}`}>
               {form.einseitig ? '1-seitig' : '2-seitig'}
             </button>
           </div>
@@ -188,7 +188,7 @@ export default function Training({ editEntry, onDone }) {
         <div className="grid grid-cols-4 gap-2 mb-3">
           <div className="col-span-2">
             <label className={L}>Sätze</label>
-            <div className="flex items-center bg-bg border border-brd rounded-lg">
+            <div className="h-[42px] flex items-center bg-bg border border-brd rounded-lg">
               <button onClick={() => setForm({...form, saetze: Math.max(1, form.saetze-1)})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">−</button>
               <span className="flex-1 text-center text-base font-bold">{form.saetze}</span>
               <button onClick={() => setForm({...form, saetze: form.saetze+1})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">+</button>
@@ -201,14 +201,14 @@ export default function Training({ editEntry, onDone }) {
           <div>
             <label className={L}>&nbsp;</label>
             <button onClick={() => setWdhUnit(wdhUnit === 'wdh' ? 'sek' : 'wdh')}
-              className={`w-full p-2.5 rounded-lg font-bold text-xs cursor-pointer border ${wdhUnit === 'sek' ? 'bg-corange text-bg border-corange' : 'bg-bg text-dim border-brd'}`}>
+              className={`w-full h-[42px] flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border ${wdhUnit === 'sek' ? 'bg-corange text-bg border-corange' : 'bg-bg text-dim border-brd'}`}>
               {wdhUnit === 'wdh' ? 'Wdh' : 'Sek'} ⇄
             </button>
           </div>
         </div>
         <div className="mb-3">
           <button onClick={() => setForm({...form, einseitig: !form.einseitig})}
-            className={`px-4 py-2 rounded-lg font-bold text-xs cursor-pointer border ${form.einseitig ? 'bg-gold text-bg border-gold' : 'bg-bg text-dim border-brd'}`}>
+            className={`h-[42px] px-4 flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border ${form.einseitig ? 'bg-gold text-bg border-gold' : 'bg-bg text-dim border-brd'}`}>
             {form.einseitig ? '✓ Einseitig' : 'Beidseitig'}
           </button>
         </div>
@@ -219,7 +219,7 @@ export default function Training({ editEntry, onDone }) {
         <div className="grid grid-cols-4 gap-2 mb-3">
           <div className="col-span-2">
             <label className={L}>Sätze</label>
-            <div className="flex items-center bg-bg border border-brd rounded-lg">
+            <div className="h-[42px] flex items-center bg-bg border border-brd rounded-lg">
               <button onClick={() => setForm({...form, saetze: Math.max(1, form.saetze-1)})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">−</button>
               <span className="flex-1 text-center text-base font-bold">{form.saetze}</span>
               <button onClick={() => setForm({...form, saetze: form.saetze+1})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">+</button>
@@ -232,7 +232,7 @@ export default function Training({ editEntry, onDone }) {
           <div>
             <label className={L}>&nbsp;</label>
             <button onClick={() => setWdhUnit(wdhUnit === 'wdh' ? 'sek' : 'wdh')}
-              className={`w-full p-2.5 rounded-lg font-bold text-xs cursor-pointer border ${wdhUnit === 'sek' ? 'bg-corange text-bg border-corange' : 'bg-bg text-dim border-brd'}`}>
+              className={`w-full h-[42px] flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border ${wdhUnit === 'sek' ? 'bg-corange text-bg border-corange' : 'bg-bg text-dim border-brd'}`}>
               {wdhUnit === 'wdh' ? 'Wdh' : 'Sek'} ⇄
             </button>
           </div>
@@ -245,7 +245,7 @@ export default function Training({ editEntry, onDone }) {
           <div>
             <label className={L}>&nbsp;</label>
             <button onClick={() => setForm({...form, einseitig: !form.einseitig})}
-              className={`w-full p-2.5 rounded-lg font-bold text-xs cursor-pointer border ${form.einseitig ? 'bg-gold text-bg border-gold' : 'bg-bg text-dim border-brd'}`}>
+              className={`w-full h-[42px] flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border ${form.einseitig ? 'bg-gold text-bg border-gold' : 'bg-bg text-dim border-brd'}`}>
               {form.einseitig ? '✓ Einseitig' : 'Beidseitig'}
             </button>
           </div>
@@ -288,7 +288,7 @@ export default function Training({ editEntry, onDone }) {
           <div>
             <label className={L}>Ort</label>
             <button onClick={() => setForm({...form, schwimmort: form.schwimmort === 'Pool' ? 'Freiwasser' : 'Pool'})}
-              className={`w-full p-2.5 rounded-lg font-bold text-xs cursor-pointer border ${form.schwimmort === 'Pool' ? 'bg-cyan text-bg border-cyan' : 'bg-cblue text-bg border-cblue'}`}>
+              className={`w-full h-[42px] flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border ${form.schwimmort === 'Pool' ? 'bg-cyan text-bg border-cyan' : 'bg-cblue text-bg border-cblue'}`}>
               {form.schwimmort || 'Pool'} ⇄
             </button>
           </div>
@@ -301,7 +301,7 @@ export default function Training({ editEntry, onDone }) {
         <div className="grid grid-cols-4 gap-2 mb-3">
           <div className="col-span-2">
             <label className={L}>Sätze</label>
-            <div className="flex items-center bg-bg border border-brd rounded-lg">
+            <div className="h-[42px] flex items-center bg-bg border border-brd rounded-lg">
               <button onClick={() => setForm({...form, saetze: Math.max(1, form.saetze-1)})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">−</button>
               <span className="flex-1 text-center text-base font-bold">{form.saetze}</span>
               <button onClick={() => setForm({...form, saetze: form.saetze+1})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">+</button>
@@ -314,7 +314,7 @@ export default function Training({ editEntry, onDone }) {
           <div>
             <label className={L}>&nbsp;</label>
             <button onClick={() => setWdhUnit(wdhUnit === 'wdh' ? 'sek' : 'wdh')}
-              className={`w-full p-2.5 rounded-lg font-bold text-xs cursor-pointer border ${wdhUnit === 'sek' ? 'bg-corange text-bg border-corange' : 'bg-bg text-dim border-brd'}`}>
+              className={`w-full h-[42px] flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border ${wdhUnit === 'sek' ? 'bg-corange text-bg border-corange' : 'bg-bg text-dim border-brd'}`}>
               {wdhUnit === 'wdh' ? 'Wdh' : 'Sek'} ⇄
             </button>
           </div>
