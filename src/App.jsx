@@ -56,8 +56,8 @@ export default function App() {
   return (
     <div className="bg-bg min-h-screen max-w-lg mx-auto pb-24">
       {/* Header */}
-      <header className="px-4 pb-1 bg-gradient-to-br from-sf to-card border-b border-brd" style={{ paddingTop: 'max(env(safe-area-inset-top, 12px), 44px)' }}>
-        <img src="/banner.png" alt="MaxFit" className="h-10 object-contain" style={{ maxWidth: '70%' }} />
+      <header className="bg-gradient-to-br from-sf to-card border-b border-brd" style={{ paddingTop: 'max(env(safe-area-inset-top, 12px), 44px)' }}>
+        <img src="/banner.png" alt="MaxFit" className="w-full h-12 object-cover" />
       </header>
 
       {/* Content */}
