@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import db from '../db';
 import { getTyp } from '../utils/categories.jsx';
 import { getExerciseInfo } from '../exercise-library';
+import { localDate } from '../utils/streak';
 
 const TYPES = [
   { id: 'maschine', label: 'Maschine', geraet: 'Maschine', icon: '🏋️' },
@@ -13,7 +14,7 @@ const TYPES = [
   { id: 'prev', label: 'Prävention', geraet: 'Prävention', icon: '✚' },
 ];
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => localDate();
 const I = "h-[42px] p-2 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none w-full";
 const L = "block text-[10px] text-dim font-bold uppercase tracking-wider mb-0.5";
 const TG = (on, c='acc') => `h-[42px] flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border w-full ${on ? `bg-${c} text-bg border-${c}` : 'bg-bg text-dim border-brd'}`;

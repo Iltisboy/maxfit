@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import db from '../db';
 import { getTyp, getEntryTypes, CatSymbol, CATEGORIES } from '../utils/categories';
 import { getExerciseInfo } from '../exercise-library';
+import { localDate } from '../utils/streak';
 
 function fmt(d) { const p = d.split('-'); return `${p[2]}.${p[1]}.${p[0]}`; }
 
@@ -48,7 +49,7 @@ export default function History({ onEdit }) {
   }
 
   async function copyAsTemplate(sourceDate) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDate();
     if (today === sourceDate) return;
     const src = entries.filter(e => e.datum === sourceDate);
     const newEntries = src.map(e => {
@@ -62,7 +63,7 @@ export default function History({ onEdit }) {
 
   // Day detail view
   if (selDate) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDate();
     return (
       <div className="px-5 pt-4 pb-4">
         <div className="flex items-center justify-between mb-3">
