@@ -125,12 +125,12 @@ export default function Training({ editEntry, onDone }) {
       {savedCount > 0 && !saved && <div className="text-[10px] text-dim mb-2 text-center">{savedCount} Übung(en) eingetragen</div>}
 
       {/* Datum + Übung row */}
-      <div className="flex gap-2 mb-3">
-        <div className="w-[38%]">
+      <div className="flex gap-3 mb-3">
+        <div style={{ width: 130, flexShrink: 0 }}>
           <label className={L}>Datum</label>
-          <input type="date" value={form.datum} onChange={e => setForm({...form, datum: e.target.value})} className={I} />
+          <input type="date" value={form.datum} onChange={e => setForm({...form, datum: e.target.value})} className={I} style={{ fontSize: 13 }} />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <label className={L}>Übung</label>
           <input value={form.uebung} onChange={e => { setForm({...form, uebung: e.target.value}); setShowSug(true); }} onFocus={() => setShowSug(true)} placeholder="z.B. Beinpresse" className={I} />
         </div>
