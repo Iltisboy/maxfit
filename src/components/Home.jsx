@@ -4,7 +4,7 @@ import { calcStreak, getCurrentWeekDays } from '../utils/streak';
 import { CatSymbol } from '../utils/categories';
 import { exportForClaude } from '../utils/export';
 
-export default function Home() {
+export default function Home({ onStartWorkout }) {
   const [entries, setEntries] = useState([]);
   const [goal, setGoal] = useState(null);
   const [showExport, setShowExport] = useState(false);
@@ -96,6 +96,12 @@ export default function Home() {
       <button onClick={handleExport}
         className="w-full py-4 bg-gradient-to-r from-acc to-acc-d text-bg font-bold text-base rounded-2xl border-none cursor-pointer">
         🤖 Trainingsplan anfordern
+      </button>
+
+      {/* Start Workout */}
+      <button onClick={onStartWorkout}
+        className="w-full py-4 bg-card border-2 border-corange text-corange font-bold text-base rounded-2xl cursor-pointer">
+        🔥 Workout starten (Plan importieren)
       </button>
 
       {/* Export Modal */}

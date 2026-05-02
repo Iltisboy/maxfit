@@ -16,13 +16,13 @@ export default function History({ onEdit }) {
   const [selDate, setSelDate] = useState(null);
   const [showInfo, setShowInfo] = useState(null);
   const [bests, setBests] = useState({});
+  const [sessionNotes, setSessionNotes] = useState({});
 
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
     const all = await db.entries.toArray();
     setEntries(all);
-    // Calc bests
     const b = {};
     all.forEach(e => {
       const w = parseWeight(e.gewicht);
@@ -30,6 +30,13 @@ export default function History({ onEdit }) {
       if (!b[e.uebung] || w > b[e.uebung].w) b[e.uebung] = { w, d: e.datum, disp: e.gewicht };
     });
     setBests(b);
+    // Load session notes
+    try {
+      const notes = await db.sessionNotes.toArray();
+      const noteMap = {};
+      notes.forEach(n => { noteMap[n.datum] = n.note; });
+      setSessionNotes(noteMap);
+    } catch (e) {}
   }
 
   const dates = [...new Set(entries.map(e => e.datum))].sort((a, b) => b.localeCompare(a));
@@ -69,6 +76,13 @@ export default function History({ onEdit }) {
             className="w-full py-3.5 mb-3 bg-acc-g border border-acc rounded-lg text-acc font-bold text-sm cursor-pointer">
             📋 Als Vorlage für heute nutzen
           </button>
+        )}
+
+        {sessionNotes[selDate] && (
+          <div className="bg-card rounded-2xl p-3 mb-3 border border-brd">
+            <span className="text-xs text-dim font-bold">📝 Session-Notiz:</span>
+            <p className="text-sm text-t-primary mt-1">{sessionNotes[selDate]}</p>
+          </div>
         )}
 
         {dayEntries.map(e => {

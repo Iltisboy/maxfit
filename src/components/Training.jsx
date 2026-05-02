@@ -4,14 +4,13 @@ import { getTyp } from '../utils/categories';
 import { getExerciseInfo } from '../exercise-library';
 
 const TYPES = [
-  { id: 'kraft', label: 'Kraft (Maschine)', geraet: 'Maschine' },
-  { id: 'kabel', label: 'Kraft (Kabelzug)', geraet: 'Kabelzug' },
-  { id: 'eigen', label: 'Eigengewicht', geraet: 'Eigengewicht' },
-  { id: 'kb', label: 'Kettlebell', geraet: 'Kettlebell' },
-  { id: 'cardio', label: 'Cardio (Gym)', geraet: 'Cardio' },
-  { id: 'outdoor', label: 'Cardio (Outdoor)', geraet: 'Outdoor' },
-  { id: 'swim', label: 'Schwimmen', geraet: 'Schwimmbad' },
-  { id: 'prev', label: 'Prävention', geraet: 'Prävention' },
+  { id: 'maschine', label: 'Maschine', geraet: 'Maschine', icon: '🏋️' },
+  { id: 'eigen', label: 'Eigengewicht', geraet: 'Eigengewicht', icon: '🤸' },
+  { id: 'kb', label: 'Kettlebell', geraet: 'Kettlebell', icon: '🔔' },
+  { id: 'cardio', label: 'Cardio (Gym)', geraet: 'Cardio', icon: '💙' },
+  { id: 'outdoor', label: 'Cardio (Outdoor)', geraet: 'Outdoor', icon: '💚' },
+  { id: 'swim', label: 'Schwimmen', geraet: 'Schwimmbad', icon: '💧' },
+  { id: 'prev', label: 'Prävention', geraet: 'Prävention', icon: '✚' },
 ];
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -95,7 +94,7 @@ export default function Training({ editEntry, onDone }) {
   const isOutdoor = selType === 'outdoor';
   const isSwim = selType === 'swim';
   const isPrev = selType === 'prev';
-  const isKraft = ['kraft', 'kabel', 'eigen', 'kb'].includes(selType);
+  const isKraft = ['maschine', 'eigen', 'kb'].includes(selType);
 
   // Type selection
   if (!selType) {
@@ -106,6 +105,7 @@ export default function Training({ editEntry, onDone }) {
           {TYPES.map(t => (
             <button key={t.id} onClick={() => selectType(t)}
               className="bg-card border border-brd rounded-2xl p-5 text-left cursor-pointer hover:border-acc transition-colors">
+              <span className="text-2xl block mb-1">{t.icon}</span>
               <span className="text-base font-bold text-t-primary">{t.label}</span>
             </button>
           ))}
@@ -155,6 +155,19 @@ export default function Training({ editEntry, onDone }) {
 
       {/* Kraft-Felder */}
       {isKraft && <>
+        {selType === 'maschine' && (
+          <div className="mb-3">
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Gerät</label>
+            <div className="flex gap-2">
+              {['Maschine', 'Kabelzug', 'Kabel'].map(g => (
+                <button key={g} onClick={() => setForm({ ...form, geraet: g })}
+                  className={`flex-1 p-2.5 rounded-xl font-semibold text-sm cursor-pointer border ${form.geraet === g ? 'bg-acc text-bg border-acc' : 'bg-bg text-dim border-brd'}`}>
+                  {g}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="flex gap-3 mb-3">
           <div className="flex-1">
             <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Sätze</label>

@@ -9,6 +9,15 @@ db.version(1).stores({
   prevLogs: '++id, datum, typ',
 });
 
+db.version(2).stores({
+  entries: '++id, datum, uebung, geraet, typ',
+  goals: '++id, name, datum',
+  prevLogs: '++id, datum, typ',
+  workouts: '++id, datum, modus, status',
+  bodyweight: '++id, datum',
+  sessionNotes: '++id, datum',
+});
+
 export async function initDB() {
   const count = await db.entries.count();
   if (count === 0) {

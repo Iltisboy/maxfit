@@ -5,13 +5,15 @@ import Home from './components/Home';
 import Training from './components/Training';
 import History from './components/History';
 import Calendar from './components/Calendar';
+import Workout from './components/Workout';
 import More from './components/More';
 
 export default function App() {
   const [view, setView] = useState('home');
   const [ready, setReady] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
-  const [key, setKey] = useState(0); // Force re-render after save
+  const [key, setKey] = useState(0);
+  const [showWorkout, setShowWorkout] = useState(false); // Force re-render after save
 
   useEffect(() => {
     initDB().then(() => setReady(true));
@@ -35,6 +37,7 @@ export default function App() {
 
   function handleNavChange(v) {
     setView(v);
+    setShowWorkout(false);
     if (v !== 'training') setEditEntry(null);
     setKey(k => k + 1);
   }
@@ -59,11 +62,15 @@ export default function App() {
 
       {/* Content */}
       <main key={key}>
-        {view === 'home' && <Home />}
-        {view === 'training' && <Training editEntry={editEntry} onDone={handleTrainingDone} />}
-        {view === 'history' && <History onEdit={handleEdit} />}
-        {view === 'calendar' && <Calendar onSelectDate={handleCalendarSelect} />}
-        {view === 'more' && <More />}
+        {showWorkout ? (
+          <Workout onDone={() => { setShowWorkout(false); setView('history'); setKey(k => k + 1); }} />
+        ) : <>
+          {view === 'home' && <Home onStartWorkout={() => setShowWorkout(true)} />}
+          {view === 'training' && <Training editEntry={editEntry} onDone={handleTrainingDone} />}
+          {view === 'history' && <History onEdit={handleEdit} />}
+          {view === 'calendar' && <Calendar onSelectDate={handleCalendarSelect} />}
+          {view === 'more' && <More />}
+        </>}
       </main>
 
       {/* Navigation */}
