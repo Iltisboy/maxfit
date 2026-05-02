@@ -73,7 +73,7 @@ export default function More() {
   // Menu
   if (view === 'menu') {
     return (
-      <div className="px-4 pt-3 pb-4 space-y-2">
+      <div className="px-5 pt-4 pb-4 space-y-2">
         {toast && <div className="fixed top-3 left-1/2 -translate-x-1/2 bg-acc text-bg px-5 py-2 rounded-full text-sm font-bold z-50">{toast}</div>}
         {[
           ['📚', 'Übungsbibliothek', 'lib'],
@@ -87,9 +87,9 @@ export default function More() {
             if (v === 'export') { handleExportJSON(); return; }
             if (v === 'import') { fileRef.current?.click(); return; }
             setView(v);
-          }} className="w-full bg-card border border-brd rounded-xl p-4 text-left cursor-pointer flex items-center gap-3">
-            <span className="text-lg">{icon}</span>
-            <span className="text-sm font-semibold text-t-primary">{label}</span>
+          }} className="w-full bg-card border border-brd rounded-2xl p-5 text-left cursor-pointer flex items-center gap-3">
+            <span className="text-xl">{icon}</span>
+            <span className="text-base font-semibold text-t-primary">{label}</span>
           </button>
         ))}
         <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={e => { if (e.target.files[0]) handleImport(e.target.files[0]); }} />
@@ -104,7 +104,7 @@ export default function More() {
   // Library
   if (view === 'lib') {
     return (
-      <div className="px-4 pt-3 pb-4">
+      <div className="px-5 pt-4 pb-4">
         <BackBtn />
         <h2 className="text-lg font-bold mb-3">📚 Übungsbibliothek</h2>
         <p className="text-xs text-dim mb-3">Alle Übungen mit Ausführungstipps. Tippe auf eine Kategorie.</p>
@@ -136,7 +136,7 @@ export default function More() {
   if (view === 'stats') {
     const history = exerciseHistory();
     return (
-      <div className="px-4 pt-3 pb-4">
+      <div className="px-5 pt-4 pb-4">
         <BackBtn />
         <h2 className="text-lg font-bold mb-3">🏆 Bestleistungen</h2>
         {Object.entries(bests).sort((a, b) => a[0].localeCompare(b[0])).map(([name, b]) => (
@@ -169,7 +169,7 @@ export default function More() {
   // Goals
   if (view === 'goals') {
     return (
-      <div className="px-4 pt-3 pb-4">
+      <div className="px-5 pt-4 pb-4">
         <BackBtn />
         <h2 className="text-lg font-bold mb-3">🎯 Ziele</h2>
         {goals.map(g => (
@@ -199,7 +199,7 @@ export default function More() {
   // Help
   if (view === 'help') {
     return (
-      <div className="px-4 pt-3 pb-4">
+      <div className="px-5 pt-4 pb-4">
         <BackBtn />
         <h2 className="text-lg font-bold mb-3">So funktioniert MaxFit</h2>
         <div className="space-y-3">

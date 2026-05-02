@@ -100,13 +100,13 @@ export default function Training({ editEntry, onDone }) {
   // Type selection
   if (!selType) {
     return (
-      <div className="px-4 pt-3 pb-4">
-        <h2 className="text-lg font-bold mb-4">Was trainierst du?</h2>
-        <div className="grid grid-cols-2 gap-2">
+      <div className="px-5 pt-4 pb-4">
+        <h2 className="text-xl font-bold mb-5">Was trainierst du?</h2>
+        <div className="grid grid-cols-2 gap-3">
           {TYPES.map(t => (
             <button key={t.id} onClick={() => selectType(t)}
-              className="bg-card border border-brd rounded-xl p-4 text-left cursor-pointer hover:border-acc transition-colors">
-              <span className="text-sm font-bold text-t-primary">{t.label}</span>
+              className="bg-card border border-brd rounded-2xl p-5 text-left cursor-pointer hover:border-acc transition-colors">
+              <span className="text-base font-bold text-t-primary">{t.label}</span>
             </button>
           ))}
         </div>
@@ -115,7 +115,7 @@ export default function Training({ editEntry, onDone }) {
   }
 
   return (
-    <div className="px-4 pt-3 pb-4">
+    <div className="px-5 pt-4 pb-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold">{editEntry ? 'Bearbeiten' : 'Neue Übung'}</h2>
         <button onClick={() => { setSelType(null); setInfo(null); }} className="text-acc text-sm font-semibold bg-transparent border-none cursor-pointer">← Typ ändern</button>
@@ -125,19 +125,19 @@ export default function Training({ editEntry, onDone }) {
 
       {/* Datum */}
       <div className="mb-3">
-        <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Datum</label>
+        <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Datum</label>
         <input type="date" value={form.datum} onChange={e => setForm({ ...form, datum: e.target.value })}
-          className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+          className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
       </div>
 
       {/* Übung */}
       <div className="mb-3">
-        <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Übung</label>
+        <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Übung</label>
         <input value={form.uebung}
           onChange={e => { setForm({ ...form, uebung: e.target.value }); setShowSug(true); }}
           onFocus={() => setShowSug(true)}
           placeholder="z.B. Beinpresse"
-          className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+          className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
         {showSug && sugs.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
             {sugs.map(u => (
@@ -157,27 +157,27 @@ export default function Training({ editEntry, onDone }) {
       {isKraft && <>
         <div className="flex gap-3 mb-3">
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Sätze</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Sätze</label>
             <div className="flex items-center">
-              <button onClick={() => setForm({ ...form, saetze: Math.max(1, form.saetze - 1) })} className="w-9 h-9 bg-card border border-brd rounded-lg text-t-primary text-lg font-bold cursor-pointer">−</button>
+              <button onClick={() => setForm({ ...form, saetze: Math.max(1, form.saetze - 1) })} className="w-11 h-11 bg-card border border-brd rounded-lg text-t-primary text-xl font-bold cursor-pointer">−</button>
               <span className="flex-1 text-center text-base font-bold">{form.saetze}</span>
-              <button onClick={() => setForm({ ...form, saetze: form.saetze + 1 })} className="w-9 h-9 bg-card border border-brd rounded-lg text-t-primary text-lg font-bold cursor-pointer">+</button>
+              <button onClick={() => setForm({ ...form, saetze: form.saetze + 1 })} className="w-11 h-11 bg-card border border-brd rounded-lg text-t-primary text-xl font-bold cursor-pointer">+</button>
             </div>
           </div>
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Wdh / Zeit</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Wdh / Zeit</label>
             <input value={form.wdh} onChange={e => setForm({ ...form, wdh: e.target.value })} placeholder="12 oder 60 sek"
-              className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+              className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
           </div>
         </div>
         <div className="flex gap-3 mb-3">
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Gewicht / Stufe</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Gewicht / Stufe</label>
             <input value={form.gewicht} onChange={e => setForm({ ...form, gewicht: e.target.value })} placeholder="22,5 kg"
-              className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+              className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
           </div>
           <div className="w-20">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Einseitig</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Einseitig</label>
             <button onClick={() => setForm({ ...form, einseitig: !form.einseitig })}
               className={`w-full p-2.5 rounded-lg font-semibold text-sm cursor-pointer border ${form.einseitig ? 'bg-acc text-bg border-acc' : 'bg-bg text-dim border-brd'}`}>
               {form.einseitig ? 'Ja' : 'Nein'}
@@ -190,20 +190,20 @@ export default function Training({ editEntry, onDone }) {
       {selType === 'cardio' && <>
         <div className="flex gap-3 mb-3">
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Dauer</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Dauer</label>
             <input value={form.dauer || form.wdh} onChange={e => setForm({ ...form, wdh: e.target.value, dauer: e.target.value })} placeholder="25 min"
-              className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+              className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
           </div>
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Stufe / Tempo</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Stufe / Tempo</label>
             <input value={form.stufe || form.gewicht} onChange={e => setForm({ ...form, gewicht: e.target.value, stufe: e.target.value })} placeholder="Stufe 12"
-              className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+              className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
           </div>
         </div>
         <div className="mb-3">
-          <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Ø Herzfrequenz</label>
+          <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Ø Herzfrequenz</label>
           <input value={form.hf} onChange={e => setForm({ ...form, hf: e.target.value })} placeholder="148" type="number"
-            className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+            className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
         </div>
       </>}
 
@@ -211,32 +211,32 @@ export default function Training({ editEntry, onDone }) {
       {isOutdoor && <>
         <div className="flex gap-3 mb-3">
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Distanz</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Distanz</label>
             <input value={form.distanz || form.wdh} onChange={e => setForm({ ...form, wdh: e.target.value, distanz: e.target.value })} placeholder="34,75 km"
-              className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+              className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
           </div>
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Dauer</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Dauer</label>
             <input value={form.dauer} onChange={e => setForm({ ...form, dauer: e.target.value })} placeholder="2:22:52"
-              className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+              className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
           </div>
         </div>
         <div className="flex gap-3 mb-3">
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Pace / Speed</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Pace / Speed</label>
             <input value={form.pace} onChange={e => setForm({ ...form, pace: e.target.value })} placeholder="5:58 min/km"
-              className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+              className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
           </div>
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Ø Herzfrequenz</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Ø Herzfrequenz</label>
             <input value={form.hf} onChange={e => setForm({ ...form, hf: e.target.value })} placeholder="148" type="number"
-              className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+              className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
           </div>
         </div>
         <div className="mb-3">
-          <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Höhenmeter</label>
+          <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Höhenmeter</label>
           <input value={form.hoehenmeter} onChange={e => setForm({ ...form, hoehenmeter: e.target.value })} placeholder="283" type="number"
-            className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+            className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
         </div>
       </>}
 
@@ -244,26 +244,26 @@ export default function Training({ editEntry, onDone }) {
       {isSwim && <>
         <div className="flex gap-3 mb-3">
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Distanz</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Distanz</label>
             <input value={form.distanz || form.wdh} onChange={e => setForm({ ...form, wdh: e.target.value, distanz: e.target.value })} placeholder="800 m"
-              className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+              className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
           </div>
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Dauer</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Dauer</label>
             <input value={form.dauer} onChange={e => setForm({ ...form, dauer: e.target.value })} placeholder="18:30 min"
-              className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+              className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
           </div>
         </div>
         <div className="flex gap-3 mb-3">
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Pace</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Pace</label>
             <input value={form.pace} onChange={e => setForm({ ...form, pace: e.target.value })} placeholder="2:19 min/100m"
-              className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+              className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
           </div>
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Ø Herzfrequenz</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Ø Herzfrequenz</label>
             <input value={form.hf} onChange={e => setForm({ ...form, hf: e.target.value })} placeholder="142" type="number"
-              className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+              className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
           </div>
         </div>
       </>}
@@ -272,31 +272,31 @@ export default function Training({ editEntry, onDone }) {
       {isPrev && <>
         <div className="flex gap-3 mb-3">
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Sätze</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Sätze</label>
             <div className="flex items-center">
-              <button onClick={() => setForm({ ...form, saetze: Math.max(1, form.saetze - 1) })} className="w-9 h-9 bg-card border border-brd rounded-lg text-t-primary text-lg font-bold cursor-pointer">−</button>
+              <button onClick={() => setForm({ ...form, saetze: Math.max(1, form.saetze - 1) })} className="w-11 h-11 bg-card border border-brd rounded-lg text-t-primary text-xl font-bold cursor-pointer">−</button>
               <span className="flex-1 text-center text-base font-bold">{form.saetze}</span>
-              <button onClick={() => setForm({ ...form, saetze: form.saetze + 1 })} className="w-9 h-9 bg-card border border-brd rounded-lg text-t-primary text-lg font-bold cursor-pointer">+</button>
+              <button onClick={() => setForm({ ...form, saetze: form.saetze + 1 })} className="w-11 h-11 bg-card border border-brd rounded-lg text-t-primary text-xl font-bold cursor-pointer">+</button>
             </div>
           </div>
           <div className="flex-1">
-            <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Dauer / Wdh</label>
+            <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Dauer / Wdh</label>
             <input value={form.wdh} onChange={e => setForm({ ...form, wdh: e.target.value })} placeholder="45 sek oder 12"
-              className="w-full p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none" />
+              className="w-full p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none" />
           </div>
         </div>
       </>}
 
       {/* Bemerkungen (alle Typen) */}
       <div className="mb-4">
-        <label className="block text-[10px] text-dim font-bold uppercase tracking-wider mb-1">Bemerkungen</label>
+        <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Bemerkungen</label>
         <textarea value={form.bem} onChange={e => setForm({ ...form, bem: e.target.value })}
           placeholder="Steigerung, Schmerz, Supersatz..."
-          className="w-full min-h-[48px] p-2.5 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none resize-y" />
+          className="w-full min-h-[56px] p-3.5 bg-bg border border-brd rounded-xl text-t-primary text-base outline-none resize-y" />
       </div>
 
       <button onClick={handleSave}
-        className="w-full py-3 bg-gradient-to-r from-acc to-acc-d text-bg font-bold text-sm rounded-xl border-none cursor-pointer">
+        className="w-full py-4 bg-gradient-to-r from-acc to-acc-d text-bg font-bold text-base rounded-2xl border-none cursor-pointer">
         {editEntry ? 'Aktualisieren' : 'Speichern'}
       </button>
     </div>

@@ -40,30 +40,30 @@ export default function Home() {
   function fmt(d) { const p = d.split('-'); return `${p[2]}.${p[1]}.${p[0]}`; }
 
   return (
-    <div className="px-4 pt-3 pb-4 space-y-3">
+    <div className="px-5 pt-4 pb-4 space-y-4">
       {/* Streak */}
-      <div className="bg-card rounded-xl p-4 border border-brd text-center">
-        <div className="flex items-baseline justify-center gap-2">
-          <span className="text-3xl font-extrabold text-corange">🔥 {streak.current}</span>
-          <span className="text-sm font-semibold text-dim">Wochen-Streak</span>
+      <div className="bg-card rounded-2xl p-6 border border-brd text-center">
+        <div className="flex items-baseline justify-center gap-3">
+          <span className="text-4xl font-extrabold text-corange">🔥 {streak.current}</span>
+          <span className="text-base font-semibold text-dim">Wochen-Streak</span>
         </div>
-        <div className="text-[10px] text-mut mt-1">Längster: {streak.longest} Wochen</div>
+        <div className="text-xs text-mut mt-2">Längster: {streak.longest} Wochen</div>
       </div>
 
       {/* Week overview */}
-      <div className="bg-card rounded-xl p-3 border border-brd">
-        <div className="text-xs text-dim font-semibold mb-2">Diese Woche: {trainedThisWeek} von 7 Tagen</div>
-        <div className="grid grid-cols-7 gap-1">
+      <div className="bg-card rounded-2xl p-4 border border-brd">
+        <div className="text-sm text-dim font-semibold mb-3">Diese Woche: {trainedThisWeek} von 7 Tagen</div>
+        <div className="grid grid-cols-7 gap-1.5">
           {weekDays.map((d, i) => (
             <div key={i} className="text-center">
-              <div className="text-[9px] text-mut font-bold mb-1">{d.label}</div>
-              <div className={`h-8 rounded-md flex flex-col items-center justify-center ${d.trained ? 'bg-acc-g border border-acc' : 'bg-bg border border-brd'}`}>
+              <div className="text-[11px] text-mut font-bold mb-1">{d.label}</div>
+              <div className={`h-12 rounded-lg flex flex-col items-center justify-center ${d.trained ? 'bg-acc-g border border-acc' : 'bg-bg border border-brd'}`}>
                 {d.trained ? (
                   <div className="flex gap-0.5">
-                    {d.types.slice(0, 2).map((t, j) => <CatSymbol key={j} typ={t} size={7} />)}
+                    {d.types.slice(0, 2).map((t, j) => <CatSymbol key={j} typ={t} size={10} />)}
                   </div>
                 ) : (
-                  <span className="text-mut text-[10px]">·</span>
+                  <span className="text-mut text-sm">·</span>
                 )}
               </div>
             </div>
@@ -73,19 +73,19 @@ export default function Home() {
 
       {/* Goal / Countdown */}
       {goal && daysToGoal !== null && (
-        <div className="bg-card rounded-xl p-4 border border-brd text-center">
-          <div className="text-xs text-dim font-semibold">{goal.name}</div>
-          <div className="text-3xl font-extrabold text-acc mt-1">{daysToGoal}</div>
-          <div className="text-xs text-dim">Tage bis {fmt(goal.datum)}</div>
-          {goal.details && <div className="text-[10px] text-mut mt-1">{goal.details}</div>}
+        <div className="bg-card rounded-2xl p-5 border border-brd text-center">
+          <div className="text-sm text-dim font-semibold">{goal.name}</div>
+          <div className="text-4xl font-extrabold text-acc mt-1">{daysToGoal}</div>
+          <div className="text-sm text-dim">Tage bis {fmt(goal.datum)}</div>
+          {goal.details && <div className="text-xs text-mut mt-1">{goal.details}</div>}
         </div>
       )}
 
       {/* Last session */}
       {lastDate && (
-        <div className="bg-card rounded-xl p-3 border border-brd">
-          <div className="text-xs text-dim font-semibold">Letzte Session: {fmt(lastDate)}</div>
-          <div className="text-sm text-t-primary mt-1">
+        <div className="bg-card rounded-2xl p-4 border border-brd">
+          <div className="text-sm text-dim font-semibold">Letzte Session: {fmt(lastDate)}</div>
+          <div className="text-base text-t-primary mt-1">
             {lastEntries.slice(0, 3).map(e => e.uebung).join(', ')}
             {lastEntries.length > 3 && ` +${lastEntries.length - 3}`}
           </div>
@@ -94,7 +94,7 @@ export default function Home() {
 
       {/* Export for Claude */}
       <button onClick={handleExport}
-        className="w-full py-3 bg-gradient-to-r from-acc to-acc-d text-bg font-bold text-sm rounded-xl border-none cursor-pointer">
+        className="w-full py-4 bg-gradient-to-r from-acc to-acc-d text-bg font-bold text-base rounded-2xl border-none cursor-pointer">
         🤖 Trainingsplan anfordern
       </button>
 

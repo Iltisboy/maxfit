@@ -57,7 +57,7 @@ export default function History({ onEdit }) {
   if (selDate) {
     const today = new Date().toISOString().slice(0, 10);
     return (
-      <div className="px-4 pt-3 pb-4">
+      <div className="px-5 pt-4 pb-4">
         <div className="flex items-center justify-between mb-3">
           <button onClick={() => setSelDate(null)} className="text-acc text-sm font-semibold bg-transparent border-none cursor-pointer">← Zurück</button>
           <h2 className="text-base font-bold">{fmt(selDate)}</h2>
@@ -66,7 +66,7 @@ export default function History({ onEdit }) {
 
         {selDate !== today && (
           <button onClick={() => copyAsTemplate(selDate)}
-            className="w-full py-2.5 mb-3 bg-acc-g border border-acc rounded-lg text-acc font-bold text-sm cursor-pointer">
+            className="w-full py-3.5 mb-3 bg-acc-g border border-acc rounded-lg text-acc font-bold text-sm cursor-pointer">
             📋 Als Vorlage für heute nutzen
           </button>
         )}
@@ -78,13 +78,13 @@ export default function History({ onEdit }) {
           const typ = e.typ || getTyp(e.geraet);
 
           return (
-            <div key={e.id} className={`bg-card rounded-xl p-3 mb-2 border relative ${isBest ? 'border-gold' : 'border-brd'}`}
+            <div key={e.id} className={`bg-card rounded-2xl p-4 mb-3 border relative ${isBest ? 'border-gold' : 'border-brd'}`}
               style={isBest ? { boxShadow: '0 0 10px rgba(251,191,36,0.12)' } : {}}>
               {isBest && <span className="absolute top-2 right-2 text-[11px] text-gold font-bold">🏆 PR</span>}
               <div className="flex justify-between items-center mb-1">
                 <div className="flex items-center gap-2">
                   <CatSymbol typ={typ} size={10} />
-                  <span className="font-bold text-sm">{e.uebung}</span>
+                  <span className="font-bold text-base">{e.uebung}</span>
                   {info && (
                     <button onClick={() => setShowInfo(infoOpen ? null : e.id)}
                       className="bg-transparent border-none text-sm cursor-pointer p-0">🏋️</button>
@@ -96,13 +96,13 @@ export default function History({ onEdit }) {
                 <div className="bg-bg border border-brd rounded-md p-2 mb-1 text-[11px] text-cblue leading-relaxed">{info.d}</div>
               )}
               <div className="flex gap-2 items-center mb-1">
-                <span className="text-sm text-acc font-semibold">{e.saetze}x{e.wdh}</span>
-                {e.gewicht && e.gewicht !== '-' && e.gewicht !== '–' && <span className="text-sm text-acc font-semibold">{e.gewicht}</span>}
-                {e.pace && <span className="text-sm text-acc font-semibold">{e.pace}</span>}
+                <span className="text-base text-acc font-semibold">{e.saetze}x{e.wdh}</span>
+                {e.gewicht && e.gewicht !== '-' && e.gewicht !== '–' && <span className="text-base text-acc font-semibold">{e.gewicht}</span>}
+                {e.pace && <span className="text-base text-acc font-semibold">{e.pace}</span>}
                 {e.hf && <span className="text-[11px] text-cred">♥ {e.hf}</span>}
                 {e.einseitig && <span className="text-[10px] text-gold border border-gold px-1 rounded">Einseitig</span>}
               </div>
-              {e.bem && <p className="text-[11px] text-dim mt-1">{e.bem}</p>}
+              {e.bem && <p className="text-xs text-dim mt-1">{e.bem}</p>}
               <div className="flex gap-2 mt-2 pt-2 border-t border-brd">
                 <button onClick={() => onEdit && onEdit(e)} className="bg-transparent border border-brd rounded-md px-2 py-1 text-sm cursor-pointer">✏️</button>
                 <button onClick={() => handleDelete(e.id)} className="bg-transparent border border-cred/30 rounded-md px-2 py-1 text-sm cursor-pointer">🗑</button>
@@ -116,7 +116,7 @@ export default function History({ onEdit }) {
 
   // Session list
   return (
-    <div className="px-4 pt-3 pb-4">
+    <div className="px-5 pt-4 pb-4">
       {dates.length === 0 ? <p className="text-mut text-center py-8">Noch keine Einträge.</p> :
         dates.map(date => {
           const de = entries.filter(e => e.datum === date);
@@ -125,14 +125,14 @@ export default function History({ onEdit }) {
             <button key={date} onClick={() => setSelDate(date)}
               className="w-full text-left bg-card border border-brd rounded-xl p-3 mb-2 cursor-pointer block">
               <div className="flex justify-between items-center mb-1">
-                <span className="font-bold text-sm text-t-primary">{fmt(date)}</span>
-                <span className="text-[10px] text-acc bg-acc-g px-2 py-0.5 rounded-full font-bold">{de.length}</span>
+                <span className="font-bold text-base text-t-primary">{fmt(date)}</span>
+                <span className="text-xs text-acc bg-acc-g px-2 py-0.5 rounded-full font-bold">{de.length}</span>
               </div>
               <div className="flex gap-1 mb-1">
                 {types.map(t => <CatSymbol key={t} typ={t} size={10} />)}
               </div>
               <div className="flex gap-1.5 flex-wrap">
-                {de.slice(0, 3).map(e => <span key={e.id} className="text-[11px] text-dim">{e.uebung}</span>)}
+                {de.slice(0, 3).map(e => <span key={e.id} className="text-xs text-dim">{e.uebung}</span>)}
                 {de.length > 3 && <span className="text-[11px] text-mut">+{de.length - 3}</span>}
               </div>
             </button>

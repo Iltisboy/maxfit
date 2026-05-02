@@ -8,12 +8,12 @@ const tabs = [
 
 export default function BottomNav({ active, onChange }) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-bg border-t border-brd flex z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+    <nav className="fixed bottom-0 left-0 right-0 bg-bg border-t border-brd flex z-50" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 8px), 8px)' }}>
       {tabs.map(t => (
         <button key={t.id} onClick={() => onChange(t.id)}
-          className={`flex-1 flex flex-col items-center py-2 border-none cursor-pointer ${active === t.id ? 'bg-acc-g' : 'bg-transparent'}`}>
-          <span className="text-base">{t.icon}</span>
-          <span className={`text-[9px] font-semibold ${active === t.id ? 'text-acc' : 'text-dim'}`}>{t.label}</span>
+          className={`flex-1 flex flex-col items-center py-3 border-none cursor-pointer ${active === t.id ? 'bg-acc-g' : 'bg-transparent'}`}>
+          <span className="text-xl">{t.icon}</span>
+          <span className={`text-[11px] font-semibold mt-0.5 ${active === t.id ? 'text-acc' : 'text-dim'}`}>{t.label}</span>
         </button>
       ))}
     </nav>

@@ -51,10 +51,10 @@ export default function App() {
   }
 
   return (
-    <div className="bg-bg min-h-screen max-w-lg mx-auto pb-20">
+    <div className="bg-bg min-h-screen max-w-lg mx-auto pb-24">
       {/* Header */}
-      <header className="px-4 pt-4 pb-2 bg-gradient-to-br from-sf to-card border-b border-brd">
-        <h1 className="text-xl font-extrabold tracking-wider text-acc m-0">MaxFit</h1>
+      <header className="px-5 pb-3 bg-gradient-to-br from-sf to-card border-b border-brd" style={{ paddingTop: 'max(env(safe-area-inset-top, 16px), 48px)' }}>
+        <h1 className="text-2xl font-extrabold tracking-wider text-acc m-0">MaxFit</h1>
       </header>
 
       {/* Content */}
