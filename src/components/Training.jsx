@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import db from '../db';
 import { getTyp } from '../utils/categories.jsx';
-import { getExerciseInfo } from '../exercise-library';
+import { getExerciseInfo, getAllExerciseNames } from '../exercise-library';
 import { localDate } from '../utils/streak';
 
 const TYPES = [
@@ -56,7 +56,16 @@ export default function Training({ editEntry, onDone }) {
   const [showInfo, setShowInfo] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
 
-  useEffect(() => { db.entries.toArray().then(a => setAllEx([...new Set(a.map(e => e.uebung))].sort())); }, [savedCount]);
+  useEffect(() => {
+    db.entries.toArray().then(a => {
+      const fromHistory = a.map(e => e.uebung).filter(Boolean);
+      const fromLib = getAllExerciseNames();
+      // Library names are canonical; history adds custom names you've used before
+      const all = [...new Set([...fromLib, ...fromHistory])]
+        .sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
+      setAllEx(all);
+    });
+  }, [savedCount]);
 
   function stripUnit(s, kind) {
     if (!s) return '';
@@ -109,12 +118,33 @@ export default function Training({ editEntry, onDone }) {
   function selectExercise(name) {
     setForm(f => ({ ...f, uebung: name }));
     setShowSug(false);
-    setInfo(getExerciseInfo(name));
+    const libInfo = getExerciseInfo(name);
+    setInfo(libInfo);
     setShowInfo(false);
-    db.entries.where('uebung').equals(name).last().then(l => { if (l) setForm(f => ({ ...f, einseitig: l.einseitig, saetze: l.saetze || 3 })); });
+    db.entries.where('uebung').equals(name).last().then(l => {
+      if (l) {
+        // Use last logged values where available
+        setForm(f => ({ ...f, einseitig: l.einseitig, saetze: l.saetze || 3 }));
+      } else if (libInfo) {
+        // No history — adopt library's einseitig hint
+        setForm(f => ({ ...f, einseitig: !!libInfo.e }));
+      }
+    });
   }
 
-  const sugs = form.uebung.length > 0 ? allEx.filter(u => u.toLowerCase().includes(form.uebung.toLowerCase())).slice(0, 6) : allEx.slice(0, 8);
+  // Sort matching suggestions: prefix-matches first, then substring matches; alphabetical within each group
+  const sugs = (() => {
+    if (!form.uebung) return allEx.slice(0, 10);
+    const q = form.uebung.toLowerCase();
+    const starts = [];
+    const includes = [];
+    for (const u of allEx) {
+      const lo = u.toLowerCase();
+      if (lo.startsWith(q)) starts.push(u);
+      else if (lo.includes(q)) includes.push(u);
+    }
+    return [...starts, ...includes].slice(0, 10);
+  })();
 
   function buildEntry() {
     if (!form.uebung.trim()) return null;
