@@ -3,12 +3,14 @@ import db from '../db';
 import { calcStreak, getCurrentWeekDays } from '../utils/streak';
 import { CatSymbol } from '../utils/categories';
 import { exportForClaude } from '../utils/export';
+import { hasActiveWorkout } from '../utils/workoutStorage';
 
 export default function Home({ onStartWorkout }) {
   const [entries, setEntries] = useState([]);
   const [goal, setGoal] = useState(null);
   const [showExport, setShowExport] = useState(false);
   const [exportText, setExportText] = useState('');
+  const [activeWorkout] = useState(hasActiveWorkout());
 
   useEffect(() => {
     loadData();
@@ -101,9 +103,9 @@ export default function Home({ onStartWorkout }) {
         </button>
 
         <button onClick={onStartWorkout}
-          className="py-4 px-3 bg-card border-2 border-corange text-corange font-bold text-sm rounded-2xl cursor-pointer flex flex-col items-center justify-center gap-1 leading-tight">
-          <span className="text-xl">🔥</span>
-          <span>Workout starten</span>
+          className={`py-4 px-3 font-bold text-sm rounded-2xl cursor-pointer flex flex-col items-center justify-center gap-1 leading-tight ${activeWorkout ? 'bg-corange text-bg border-none' : 'bg-card border-2 border-corange text-corange'}`}>
+          <span className="text-xl">{activeWorkout ? '↻' : '🔥'}</span>
+          <span>{activeWorkout ? 'Workout fortsetzen' : 'Workout starten'}</span>
         </button>
       </div>
 

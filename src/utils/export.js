@@ -78,8 +78,18 @@ export async function importFullBackup(file) {
 }
 
 // Apply imported data into the DB. Strips IDs to avoid collisions.
-export async function applyBackup(backup) {
+// mode: 'append' (default) keeps existing data and adds the backup on top.
+//       'replace' wipes all existing data first, then writes the backup.
+export async function applyBackup(backup, mode = 'append') {
   const counts = { entries: 0, bodyweight: 0, sessionNotes: 0, goals: 0, prevLogs: 0 };
+
+  if (mode === 'replace') {
+    await db.entries.clear();
+    await db.bodyweight.clear();
+    await db.sessionNotes.clear();
+    await db.goals.clear();
+    await db.prevLogs.clear();
+  }
 
   if (backup.entries?.length) {
     const items = backup.entries.map(({ id, ...rest }) => rest);

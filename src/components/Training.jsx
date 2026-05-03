@@ -381,13 +381,18 @@ export default function Training({ editEntry, onDone }) {
       {/* ===== CARDIO GYM ===== */}
       {selType === 'cardio' && <>
         <div className="grid grid-cols-2 gap-2 mb-3">
-          <div><label className={L}>Dauer</label><UnitInput value={form.dauer} onChange={e => setForm({...form, dauer: e.target.value})} placeholder="25" unit="min" inputMode="numeric" /></div>
+          <div>
+            <label className={L}>Dauer</label>
+            <input value={form.dauer} onChange={e => setForm({...form, dauer: e.target.value})}
+              placeholder="25 oder 25:30" inputMode="text" className={I} />
+          </div>
           <div><label className={L}>Stufe / Widerstand</label><input value={form.gewicht} onChange={e => setForm({...form, gewicht: e.target.value})} placeholder="12" inputMode="text" className={I} /></div>
         </div>
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div><label className={L}>Ø HF</label><UnitInput value={form.hf} onChange={e => setForm({...form, hf: e.target.value})} placeholder="148" unit="bpm" inputMode="numeric" type="number" /></div>
           <div><label className={L}>Steigung</label><UnitInput value={form.steigung} onChange={e => setForm({...form, steigung: e.target.value})} placeholder="1" unit="%" inputMode="decimal" /></div>
         </div>
+        <p className="text-[10px] text-mut mb-3">Tipp: Dauer kann „25“ (Minuten) oder „25:30“ (MM:SS) sein.</p>
       </>}
 
       {/* ===== OUTDOOR ===== */}

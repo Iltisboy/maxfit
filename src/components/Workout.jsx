@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import db from '../db';
 import { getTyp } from '../utils/categories.jsx';
 import { localDate } from '../utils/streak';
-import { getExerciseInfo } from '../exercise-library';
+import { getExerciseInfo, EXERCISE_LIB } from '../exercise-library';
+import { saveActiveWorkout, loadActiveWorkout, clearActiveWorkout } from '../utils/workoutStorage';
 
 const MODI = {
   normal: { label: 'Normales Training', desc: 'Übung für Übung abarbeiten' },
@@ -12,7 +13,34 @@ const MODI = {
   emom:   { label: 'EMOM',   desc: 'Every Minute On the Minute – Start jede Minute neu' },
 };
 
-// --- Field type detection (mirrors Training.jsx form types) ---
+// Geräte-Auswahl für manuell hinzugefügte Übungen, falls die Übung nicht aus
+// der Bibliothek bekannt ist
+const MANUAL_GERAETE = [
+  'Maschine', 'Kabelzug', 'Eigengewicht', 'Kettlebell',
+  'Cardio', 'Outdoor', 'Schwimmbad', 'Laufband', 'Prävention'
+];
+
+// Map exercise name → its category in the library, used to auto-pick geraet
+function geraetForExercise(name) {
+  for (const [cat, list] of Object.entries(EXERCISE_LIB)) {
+    if (list.some(x => x.n === name)) {
+      if (cat === 'Maschine') return 'Maschine';
+      if (cat === 'Kabelzug') return 'Kabelzug';
+      if (cat === 'Eigengewicht') return 'Eigengewicht';
+      if (cat === 'Kettlebell') return 'Kettlebell';
+      if (cat === 'Cardio') {
+        // most cardio names except "Schwimmen*" map to Cardio (gym), but we
+        // can't fully disambiguate; default to Cardio
+        if (name.startsWith('Schwimmen')) return 'Schwimmbad';
+        if (name === 'Laufen') return 'Outdoor';
+        return 'Cardio';
+      }
+      if (cat.startsWith('Prävention')) return 'Prävention';
+    }
+  }
+  return null;
+}
+
 function getFieldType(geraet) {
   if (['Cardio', 'Laufband'].includes(geraet)) return 'cardio';
   if (geraet === 'Outdoor') return 'outdoor';
@@ -20,7 +48,7 @@ function getFieldType(geraet) {
   if (geraet === 'Kettlebell') return 'kettlebell';
   if (['Eigengewicht', 'Core', 'Boden', 'Gewichtsball'].includes(geraet)) return 'eigen';
   if (['Prävention', 'Praevention', 'Dehnung'].includes(geraet)) return 'prev';
-  return 'maschine'; // Maschine, Kabelzug, Kabel, default
+  return 'maschine';
 }
 
 function calcPace(d, t) {
@@ -63,26 +91,7 @@ function parsePlan(text) {
     const parts = trimmed.split('|').map(s => s.trim());
     if (parts.length < 2) continue;
 
-    const ex = {
-      name: parts[0],
-      geraet: parts[1],
-      done: false,
-      saetze: 3,
-      wdh: '',
-      wdhUnit: 'wdh',  // 'wdh' | 'sek'
-      gewicht: '',     // numeric value only
-      gewUnit: 'kg',   // 'kg' | 'stufe'
-      einseitig: false,
-      info: '',
-      // Cardio / Outdoor / Swim
-      dauer: '',
-      distanz: '',
-      hf: '',
-      hoehenmeter: '',
-      steigung: '',
-      schwimmort: 'Pool',
-      bem: '',
-    };
+    const ex = blankExercise(parts[0], parts[1]);
 
     const ftype = getFieldType(ex.geraet);
 
@@ -91,7 +100,6 @@ function parsePlan(text) {
       if (p.toLowerCase() === 'einseitig') { ex.einseitig = true; continue; }
       if (p.startsWith('INFO:')) { ex.info = p.replace('INFO:', '').trim(); continue; }
 
-      // "3x12" or "3x60 sek"
       const sxw = p.match(/^(\d+)x(.+)$/);
       if (sxw) {
         ex.saetze = parseInt(sxw[1]);
@@ -106,23 +114,18 @@ function parsePlan(text) {
         continue;
       }
 
-      // Stufe
       if (/^Stufe\s/i.test(p)) {
         const sm = p.match(/^Stufe\s*([\d.,]+)$/i);
         if (sm) { ex.gewicht = sm[1].replace('.', ','); ex.gewUnit = 'stufe'; continue; }
       }
-
-      // Distance km (outdoor)
       if (/^[\d.,]+\s*km$/i.test(p)) {
         ex.distanz = p.replace(/\s*km$/i, '').replace('.', ',').trim();
         continue;
       }
-      // Distance meters (swim)
       if (ftype === 'swim' && /^[\d.,]+\s*m$/i.test(p)) {
         ex.distanz = p.replace(/\s*m$/i, '').replace('.', ',').trim();
         continue;
       }
-      // Duration "30 min" / "60 sek"
       if (/^[\d.,]+\s*(min|sek|sec)$/i.test(p)) {
         const num = p.replace(/\s*(min|sek|sec)$/i, '').replace('.', ',').trim();
         if (['cardio', 'outdoor', 'swim'].includes(ftype)) {
@@ -134,32 +137,24 @@ function parsePlan(text) {
         }
         continue;
       }
-      // H:MM:SS or MM:SS (duration)
       if (/^\d+:\d+(:\d+)?$/.test(p) && ['cardio', 'outdoor', 'swim'].includes(ftype)) {
         ex.dauer = p; continue;
       }
-      // HF
       const hfm = p.match(/^HF\s*(\d+)$/i);
       if (hfm) { ex.hf = hfm[1]; continue; }
-      // Hm
       const hmm = p.match(/^(\d+)\s*hm$/i);
       if (hmm) { ex.hoehenmeter = hmm[1]; continue; }
-      // Schwimmort
       if (/^pool$/i.test(p)) { ex.schwimmort = 'Pool'; continue; }
       if (/^freiwasser$/i.test(p)) { ex.schwimmort = 'Freiwasser'; continue; }
-      // Steigung
       const stm = p.match(/^Steigung\s*([\d.,]+)\s*%?$/i);
       if (stm) { ex.steigung = stm[1].replace('.', ','); continue; }
-      // Weight "25 kg"
       if (/^[\d.,]+\s*kg$/i.test(p)) {
         ex.gewicht = p.replace(/\s*kg$/i, '').replace('.', ',').trim();
         ex.gewUnit = 'kg';
         continue;
       }
-      // Pure number
       if (/^[\d.,]+$/.test(p) && !ex.wdh) { ex.wdh = p; ex.saetze = 1; continue; }
 
-      // Fallback
       if (!ex.wdh) ex.wdh = p;
       else if (!ex.bem) ex.bem = p;
     }
@@ -168,12 +163,34 @@ function parsePlan(text) {
   return { modus, modusDetail, exercises };
 }
 
+function blankExercise(name, geraet) {
+  const libInfo = getExerciseInfo(name);
+  return {
+    name: name || '',
+    geraet: geraet || (libInfo ? geraetForExercise(name) : 'Maschine') || 'Maschine',
+    done: false,
+    saetze: 3,
+    wdh: '',
+    wdhUnit: 'wdh',
+    gewicht: '',
+    gewUnit: 'kg',
+    einseitig: libInfo?.e || false,
+    info: '',
+    dauer: '',
+    distanz: '',
+    hf: '',
+    hoehenmeter: '',
+    steigung: '',
+    schwimmort: 'Pool',
+    bem: '',
+  };
+}
+
 // --- UI helpers ---
 const I_BASE = "h-[40px] p-2 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none w-full";
 const L = "block text-[10px] text-dim font-bold uppercase tracking-wider mb-0.5";
 const BTN_TOGGLE = "w-full h-[40px] flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border";
 
-// Input field with right-side unit suffix (40px high for compactness)
 function UnitInput({ value, onChange, placeholder, unit, inputMode = 'numeric' }) {
   return (
     <div className="relative">
@@ -194,7 +211,7 @@ function UnitInput({ value, onChange, placeholder, unit, inputMode = 'numeric' }
 }
 
 export default function Workout({ onDone }) {
-  const [step, setStep] = useState('import'); // import | workout
+  const [step, setStep] = useState('import');
   const [planText, setPlanText] = useState('');
   const [plan, setPlan] = useState(null);
   const [exercises, setExercises] = useState([]);
@@ -202,8 +219,34 @@ export default function Workout({ onDone }) {
   const [sessionNote, setSessionNote] = useState('');
   const [saved, setSaved] = useState(false);
   const [confirmEarly, setConfirmEarly] = useState(false);
-  // Open info panel: "<idx>-tipp" or "<idx>-exec" or null
   const [openInfo, setOpenInfo] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addQuery, setAddQuery] = useState('');
+  const [addCustomGeraet, setAddCustomGeraet] = useState('Maschine');
+  const [restoredFromStorage, setRestoredFromStorage] = useState(false);
+
+  // ---- Auto-restore on mount ----
+  const restoredOnce = useRef(false);
+  useEffect(() => {
+    if (restoredOnce.current) return;
+    restoredOnce.current = true;
+    const saved = loadActiveWorkout();
+    if (saved && saved.step === 'workout' && saved.exercises?.length) {
+      setStep('workout');
+      setPlan(saved.plan);
+      setExercises(saved.exercises);
+      setRounds(saved.rounds || 0);
+      setSessionNote(saved.sessionNote || '');
+      setRestoredFromStorage(true);
+      setTimeout(() => setRestoredFromStorage(false), 3500);
+    }
+  }, []);
+
+  // ---- Auto-save whenever workout state changes ----
+  useEffect(() => {
+    if (step !== 'workout' || !plan || !exercises.length) return;
+    saveActiveWorkout({ step, plan, exercises, rounds, sessionNote });
+  }, [step, plan, exercises, rounds, sessionNote]);
 
   function handleImport() {
     if (!planText.trim()) return;
@@ -220,6 +263,26 @@ export default function Workout({ onDone }) {
 
   function toggleDone(idx) {
     setExercises(prev => prev.map((e, i) => i === idx ? { ...e, done: !e.done } : e));
+  }
+
+  function removeExercise(idx) {
+    setExercises(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  function addExerciseFromLibrary(name) {
+    const ex = blankExercise(name);
+    setExercises(prev => [...prev, ex]);
+    setShowAdd(false);
+    setAddQuery('');
+  }
+
+  function addCustomExercise() {
+    const name = addQuery.trim();
+    if (!name) return;
+    const ex = blankExercise(name, addCustomGeraet);
+    setExercises(prev => [...prev, ex]);
+    setShowAdd(false);
+    setAddQuery('');
   }
 
   function buildEntry(ex, datum, isCircuit, plan) {
@@ -256,6 +319,7 @@ export default function Workout({ onDone }) {
       entry.wdh = ex.wdh ? (ex.wdhUnit === 'sek' ? `${ex.wdh} sek` : String(ex.wdh)) : '';
     } else if (ftype === 'cardio') {
       entry.saetze = 1;
+      // Cardio dauer can be plain "25" (= 25 min) or "25:30" (= MM:SS)
       entry.wdh = ex.dauer ? `${ex.dauer} min` : (ex.wdh || '');
       if (ex.gewicht) {
         entry.gewicht = /stufe/i.test(ex.gewicht) ? ex.gewicht : `Stufe ${ex.gewicht}`;
@@ -295,12 +359,45 @@ export default function Workout({ onDone }) {
       await db.sessionNotes.add({ datum, note: sessionNote.trim() });
     }
 
+    clearActiveWorkout();
     setSaved(true);
     setTimeout(() => { if (onDone) onDone(); }, 1500);
   }
 
+  function discardActive() {
+    clearActiveWorkout();
+    setStep('import');
+    setPlan(null);
+    setExercises([]);
+    setPlanText('');
+    setRounds(0);
+    setSessionNote('');
+    setConfirmEarly(false);
+  }
+
   const doneCount = exercises.filter(e => e.done).length;
   const isCircuit = plan?.modus && plan.modus !== 'normal';
+
+  // === Library suggestions for "+ Übung hinzufügen"
+  const allLibNames = (() => {
+    const names = [];
+    for (const list of Object.values(EXERCISE_LIB)) {
+      for (const ex of list) names.push(ex.n);
+    }
+    return names.sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
+  })();
+  const addSuggestions = (() => {
+    const q = addQuery.toLowerCase();
+    if (!q) return allLibNames.slice(0, 12);
+    const starts = [];
+    const includes = [];
+    for (const n of allLibNames) {
+      const lo = n.toLowerCase();
+      if (lo.startsWith(q)) starts.push(n);
+      else if (lo.includes(q)) includes.push(n);
+    }
+    return [...starts, ...includes].slice(0, 12);
+  })();
 
   // === Import step ===
   if (step === 'import') {
@@ -333,6 +430,12 @@ export default function Workout({ onDone }) {
   // === Active workout ===
   return (
     <div className="px-5 pt-4 pb-4">
+      {restoredFromStorage && (
+        <div className="bg-acc-g border border-acc rounded-xl p-3 mb-3 text-sm text-acc">
+          ↻ Aktives Workout wiederhergestellt – mach einfach weiter, wo du aufgehört hast.
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Workout</h2>
@@ -362,7 +465,6 @@ export default function Workout({ onDone }) {
         const tipOpen = openInfo === `${idx}-tipp`;
         const execOpen = openInfo === `${idx}-exec`;
 
-        // Stepper for this card (uses card-local state)
         const setSaetze = (v) => updateEx(idx, 'saetze', Math.max(1, v));
         const SaetzeStepper = (
           <div className="h-[40px] flex items-center bg-bg border border-brd rounded-lg">
@@ -396,7 +498,6 @@ export default function Workout({ onDone }) {
 
         return (
           <div key={idx} className={`bg-card rounded-2xl p-4 mb-2 border transition-all ${ex.done ? 'border-acc/40' : 'border-brd'}`}>
-            {/* Header row: checkbox | name+geraet | info-buttons */}
             <div className="flex items-start gap-3">
               <button onClick={() => toggleDone(idx)}
                 title={ex.done ? 'Haken entfernen, um zu bearbeiten' : 'Als erledigt markieren'}
@@ -410,7 +511,6 @@ export default function Workout({ onDone }) {
                   {ex.einseitig && ' · Einseitig'}
                 </div>
               </div>
-              {/* Two info buttons with clear borders, vertically centered */}
               <div className="flex items-center gap-2 flex-shrink-0">
                 {tipText && (
                   <button onClick={() => setOpenInfo(tipOpen ? null : `${idx}-tipp`)}
@@ -429,7 +529,6 @@ export default function Workout({ onDone }) {
               </div>
             </div>
 
-            {/* Info on toggle */}
             {tipOpen && tipText && (
               <div className="bg-bg border border-brd rounded-lg p-2.5 mt-3 text-xs text-cblue leading-relaxed">
                 <span className="font-bold">💡 Tipp: </span>{tipText}
@@ -441,10 +540,8 @@ export default function Workout({ onDone }) {
               </div>
             )}
 
-            {/* === Edit fields (hidden when done — uncheck to edit again) === */}
             {!ex.done && !isCircuit && (
               <div className="mt-3 space-y-2">
-
                 {/* MASCHINE */}
                 {ftype === 'maschine' && <>
                   <div className="grid grid-cols-4 gap-2">
@@ -550,12 +647,13 @@ export default function Workout({ onDone }) {
                   </div>
                 </>}
 
-                {/* CARDIO GYM */}
+                {/* CARDIO GYM — accepts plain min OR MM:SS */}
                 {ftype === 'cardio' && <>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className={L}>Dauer</label>
-                      <UnitInput value={ex.dauer} onChange={e => updateEx(idx, 'dauer', e.target.value)} placeholder="25" unit="min" inputMode="numeric" />
+                      <input value={ex.dauer} onChange={e => updateEx(idx, 'dauer', e.target.value)}
+                        placeholder="25 oder 25:30" inputMode="text" className={I_BASE} />
                     </div>
                     <div>
                       <label className={L}>Stufe / Widerstand</label>
@@ -572,6 +670,7 @@ export default function Workout({ onDone }) {
                       <UnitInput value={ex.steigung} onChange={e => updateEx(idx, 'steigung', e.target.value)} placeholder="1" unit="%" inputMode="decimal" />
                     </div>
                   </div>
+                  <p className="text-[10px] text-mut">Tipp: „25" oder „25:30" — beides möglich.</p>
                 </>}
 
                 {/* OUTDOOR */}
@@ -635,15 +734,21 @@ export default function Workout({ onDone }) {
                   )}
                 </>}
 
-                {/* Bemerkung (alle Typen) */}
+                {/* Bemerkung */}
                 <div>
                   <label className={L}>Bemerkung</label>
                   <input value={ex.bem} onChange={e => updateEx(idx, 'bem', e.target.value)} placeholder="Optional…" className={I_BASE} />
                 </div>
+
+                {/* Remove button for manually added or unwanted exercises */}
+                <button onClick={() => removeExercise(idx)}
+                  className="text-xs text-cred bg-transparent border border-cred/30 rounded-md px-2 py-1 cursor-pointer">
+                  🗑 Übung entfernen
+                </button>
               </div>
             )}
 
-            {/* AMRAP/HIIT/Tabata: nur Wdh + Gewicht editierbar */}
+            {/* AMRAP/HIIT/Tabata */}
             {!ex.done && isCircuit && (
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <div>
@@ -657,7 +762,6 @@ export default function Workout({ onDone }) {
               </div>
             )}
 
-            {/* Done summary */}
             {ex.done && (
               <div className="text-xs text-dim mt-2 ml-12">
                 {!isCircuit && ex.saetze > 0 && `${ex.saetze}× `}
@@ -674,30 +778,94 @@ export default function Workout({ onDone }) {
         );
       })}
 
+      {/* Add Exercise button */}
+      <button onClick={() => setShowAdd(!showAdd)}
+        className="w-full py-3.5 mt-2 mb-3 bg-card border border-dashed border-acc text-acc font-bold text-sm rounded-2xl cursor-pointer">
+        {showAdd ? '✕ Schließen' : '+ Übung hinzufügen'}
+      </button>
+
+      {/* Add Exercise panel */}
+      {showAdd && (
+        <div className="bg-card border border-acc/40 rounded-2xl p-4 mb-3 space-y-3">
+          <div>
+            <label className={L}>Übung suchen oder neuen Namen eingeben</label>
+            <input value={addQuery} onChange={e => setAddQuery(e.target.value)} placeholder="z.B. Liegestütze, Plank, ..."
+              className={I_BASE} autoFocus />
+          </div>
+
+          {/* Library suggestions */}
+          {addSuggestions.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {addSuggestions.map(name => (
+                <button key={name} onClick={() => addExerciseFromLibrary(name)}
+                  className="bg-bg border border-brd rounded-md px-2 py-1 text-[11px] text-acc cursor-pointer">
+                  + {name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Custom exercise option */}
+          {addQuery && !allLibNames.some(n => n.toLowerCase() === addQuery.toLowerCase()) && (
+            <div className="border-t border-brd pt-3 space-y-2">
+              <p className="text-xs text-dim">
+                <b>„{addQuery}"</b> ist nicht in der Bibliothek. Wähle ein Gerät und füge es als eigene Übung hinzu:
+              </p>
+              <select value={addCustomGeraet} onChange={e => setAddCustomGeraet(e.target.value)}
+                className={I_BASE}>
+                {MANUAL_GERAETE.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <button onClick={addCustomExercise}
+                className="w-full py-2.5 bg-corange text-bg font-bold text-xs rounded-lg border-none cursor-pointer">
+                + Eigene Übung hinzufügen
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Session note */}
-      <div className="mt-4 mb-4">
+      <div className="mt-2 mb-4">
         <label className="block text-xs text-dim font-bold uppercase tracking-wider mb-1">Session-Notiz (optional)</label>
         <textarea value={sessionNote} onChange={e => setSessionNote(e.target.value)}
           placeholder="Energie, Schlaf, Gefühl..."
           className="w-full min-h-[48px] p-3 bg-bg border border-brd rounded-xl text-t-primary text-sm outline-none resize-y" />
       </div>
 
-      {/* Finish — always active */}
+      {/* Pause hint */}
+      <div className="bg-bg border border-brd rounded-xl p-2.5 mb-3 text-[11px] text-dim text-center leading-relaxed">
+        💾 Dieses Workout wird automatisch zwischengespeichert.
+        Du kannst die App schließen und später nahtlos weitermachen.
+      </div>
+
+      {/* Finish */}
       {doneCount === 0 ? (
-        <button onClick={() => onDone && onDone()}
-          className="w-full py-4 font-bold text-base rounded-2xl border border-brd bg-card text-dim cursor-pointer">
-          Abbrechen (nichts speichern)
-        </button>
+        <div className="space-y-2">
+          <button onClick={() => onDone && onDone()}
+            className="w-full py-4 font-bold text-base rounded-2xl border border-brd bg-card text-t-primary cursor-pointer">
+            App verlassen (Workout läuft im Hintergrund weiter)
+          </button>
+          <button onClick={discardActive}
+            className="w-full py-3 font-semibold text-xs rounded-xl border border-cred/40 bg-card text-cred cursor-pointer">
+            Workout verwerfen
+          </button>
+        </div>
       ) : doneCount === exercises.length ? (
         <button onClick={finishWorkout}
           className="w-full py-4 font-bold text-base rounded-2xl border-none bg-gradient-to-r from-acc to-acc-d text-bg cursor-pointer">
           ✓ Workout abschließen ({doneCount} Übungen)
         </button>
       ) : !confirmEarly ? (
-        <button onClick={() => setConfirmEarly(true)}
-          className="w-full py-4 font-bold text-base rounded-2xl border-2 border-corange bg-card text-corange cursor-pointer">
-          Workout früher beenden ({doneCount}/{exercises.length})
-        </button>
+        <div className="space-y-2">
+          <button onClick={() => onDone && onDone()}
+            className="w-full py-3 font-semibold text-sm rounded-xl border border-brd bg-card text-t-primary cursor-pointer">
+            App verlassen (Fortschritt bleibt)
+          </button>
+          <button onClick={() => setConfirmEarly(true)}
+            className="w-full py-4 font-bold text-base rounded-2xl border-2 border-corange bg-card text-corange cursor-pointer">
+            Workout früher beenden ({doneCount}/{exercises.length})
+          </button>
+        </div>
       ) : (
         <div className="space-y-2">
           <p className="text-sm text-dim text-center">

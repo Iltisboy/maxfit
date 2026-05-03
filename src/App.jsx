@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { initDB } from './db';
+import { hasActiveWorkout } from './utils/workoutStorage';
 import BottomNav from './components/BottomNav';
 import Home from './components/Home';
 import Training from './components/Training';
@@ -13,10 +14,14 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
   const [key, setKey] = useState(0);
-  const [showWorkout, setShowWorkout] = useState(false); // Force re-render after save
+  const [showWorkout, setShowWorkout] = useState(false);
 
   useEffect(() => {
-    initDB().then(() => setReady(true));
+    initDB().then(() => {
+      // If there's an active (paused) workout, jump straight back into it
+      if (hasActiveWorkout()) setShowWorkout(true);
+      setReady(true);
+    });
   }, []);
 
   function handleEdit(entry) {
@@ -31,7 +36,6 @@ export default function App() {
   }
 
   function handleCalendarSelect(date) {
-    // Navigate to history with that date selected
     setView('history');
   }
 
@@ -55,12 +59,10 @@ export default function App() {
 
   return (
     <div className="bg-bg min-h-screen max-w-lg mx-auto pb-24">
-      {/* Header */}
       <header className="bg-gradient-to-br from-sf to-card border-b border-brd" style={{ paddingTop: 'max(env(safe-area-inset-top, 12px), 44px)' }}>
         <img src="/banner.png" alt="MaxFit" className="w-full h-12 object-cover" />
       </header>
 
-      {/* Content */}
       <main key={key}>
         {showWorkout ? (
           <Workout onDone={() => { setShowWorkout(false); setView('history'); setKey(k => k + 1); }} />
@@ -73,7 +75,6 @@ export default function App() {
         </>}
       </main>
 
-      {/* Navigation */}
       <BottomNav active={view} onChange={handleNavChange} />
     </div>
   );
