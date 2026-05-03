@@ -7,3 +7,9 @@ html, body { margin: 0; padding: 0; background: #0b0c10; color: #e4e6f0; font-fa
 input, select, textarea, button { font-family: inherit; }
 input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
 ::-webkit-scrollbar { display: none; }
+
+/* CTA buttons brighten on tap (mobile-friendly active state) */
+button:active {
+  filter: brightness(1.15);
+  transition: filter 0.05s;
+}

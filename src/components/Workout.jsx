@@ -2,6 +2,7 @@ import { useState } from 'react';
 import db from '../db';
 import { getTyp } from '../utils/categories.jsx';
 import { localDate } from '../utils/streak';
+import { getExerciseInfo } from '../exercise-library';
 
 const MODI = {
   normal: { label: 'Normales Training', desc: 'Übung für Übung abarbeiten' },
@@ -41,6 +42,25 @@ function calcPaceSwim(d, t) {
   } catch(e) { return ''; }
 }
 
+// Strip a trailing unit like "kg", "m", "km", "min", "sek", "Stufe" from a value.
+// Returns { value: "25", unit: "kg" } for "25 kg".
+function splitValueUnit(s) {
+  if (!s) return { value: '', unit: '' };
+  const str = String(s).trim();
+  // "Stufe 12" -> {12, stufe}
+  let m = str.match(/^Stufe\s*([\d.,]+)$/i);
+  if (m) return { value: m[1].replace('.', ','), unit: 'stufe' };
+  // "25 kg" / "25kg"
+  m = str.match(/^([\d.,]+)\s*kg$/i);
+  if (m) return { value: m[1].replace('.', ','), unit: 'kg' };
+  // "4 km" / "800 m" / "30 min" / "60 sek"
+  m = str.match(/^([\d.,]+)\s*(km|m|min|sek|sec)$/i);
+  if (m) return { value: m[1].replace('.', ','), unit: m[2].toLowerCase() };
+  // bare number
+  if (/^[\d.,]+$/.test(str)) return { value: str.replace('.', ','), unit: '' };
+  return { value: str, unit: '' };
+}
+
 function parsePlan(text) {
   const lines = text.trim().split('\n');
   let modus = 'normal';
@@ -68,12 +88,13 @@ function parsePlan(text) {
       done: false,
       saetze: 3,
       wdh: '',
-      gewicht: '',
+      gewicht: '',      // numeric value only (no unit)
+      gewUnit: 'kg',    // 'kg' | 'stufe'
       einseitig: false,
       info: '',
       // Cardio / Outdoor / Swim
-      dauer: '',
-      distanz: '',
+      dauer: '',        // numeric (cardio: minutes; outdoor/swim: H:MM:SS or MM:SS)
+      distanz: '',      // numeric (outdoor: km; swim: m)
       hf: '',
       hoehenmeter: '',
       steigung: '',
@@ -90,32 +111,46 @@ function parsePlan(text) {
 
       // "3x12" or "3x60 sek"
       const sxw = p.match(/^(\d+)x(.+)$/);
-      if (sxw) { ex.saetze = parseInt(sxw[1]); ex.wdh = sxw[2].trim(); continue; }
+      if (sxw) {
+        ex.saetze = parseInt(sxw[1]);
+        // Strip "sek/min" from rep value too
+        const rest = sxw[2].trim();
+        const restMatch = rest.match(/^(\d+)\s*(sek|sec|min)?$/i);
+        ex.wdh = restMatch ? restMatch[1] : rest;
+        continue;
+      }
+
+      // Stufe
+      if (/^Stufe\s/i.test(p)) {
+        const sm = p.match(/^Stufe\s*([\d.,]+)$/i);
+        if (sm) { ex.gewicht = sm[1].replace('.', ','); ex.gewUnit = 'stufe'; continue; }
+      }
 
       // Distance km (outdoor)
-      if (/^\d+([.,]\d+)?\s*km$/i.test(p)) {
-        ex.distanz = p.replace(/\s*km/i, '').trim();
+      if (/^[\d.,]+\s*km$/i.test(p)) {
+        ex.distanz = p.replace(/\s*km$/i, '').replace('.', ',').trim();
         continue;
       }
       // Distance meters (swim)
-      if (ftype === 'swim' && /^\d+\s*m$/i.test(p)) {
-        ex.distanz = p.replace(/\s*m/i, '').trim();
+      if (ftype === 'swim' && /^[\d.,]+\s*m$/i.test(p)) {
+        ex.distanz = p.replace(/\s*m$/i, '').replace('.', ',').trim();
         continue;
       }
-      // Time "10 min" or "60 sek"
-      if (/^\d+\s*(min|sek|sec)/i.test(p)) {
+      // Duration "30 min" / "60 sek"
+      if (/^[\d.,]+\s*(min|sek|sec)$/i.test(p)) {
+        const num = p.replace(/\s*(min|sek|sec)$/i, '').replace('.', ',').trim();
         if (['cardio', 'outdoor', 'swim'].includes(ftype)) {
-          ex.dauer = p.replace(/\s*min/i, '').trim();
+          ex.dauer = num;
         } else if (!ex.wdh) {
-          ex.wdh = p; ex.saetze = 1;
+          ex.wdh = num; ex.saetze = 1;
         }
         continue;
       }
       // H:MM:SS or MM:SS (duration)
-      if (/^\d+:\d+(:\d+)?$/.test(p) && ['cardio','outdoor','swim'].includes(ftype)) {
+      if (/^\d+:\d+(:\d+)?$/.test(p) && ['cardio', 'outdoor', 'swim'].includes(ftype)) {
         ex.dauer = p; continue;
       }
-      // HF (e.g. "HF 148")
+      // HF
       const hfm = p.match(/^HF\s*(\d+)$/i);
       if (hfm) { ex.hf = hfm[1]; continue; }
       // Hm
@@ -126,17 +161,19 @@ function parsePlan(text) {
       if (/^freiwasser$/i.test(p)) { ex.schwimmort = 'Freiwasser'; continue; }
       // Steigung
       const stm = p.match(/^Steigung\s*([\d.,]+)\s*%?$/i);
-      if (stm) { ex.steigung = stm[1].replace(',', '.'); continue; }
-
+      if (stm) { ex.steigung = stm[1].replace('.', ','); continue; }
+      // Weight "25 kg"
+      if (/^[\d.,]+\s*kg$/i.test(p)) {
+        ex.gewicht = p.replace(/\s*kg$/i, '').replace('.', ',').trim();
+        ex.gewUnit = 'kg';
+        continue;
+      }
       // Pure number
-      if (/^\d+$/.test(p) && !ex.wdh) { ex.wdh = p; ex.saetze = 1; continue; }
-
-      // Weight
-      if (/\d+.*kg/i.test(p) || /Stufe/i.test(p)) { ex.gewicht = p; continue; }
+      if (/^[\d.,]+$/.test(p) && !ex.wdh) { ex.wdh = p; ex.saetze = 1; continue; }
 
       // Fallback
       if (!ex.wdh) ex.wdh = p;
-      else ex.gewicht = p;
+      else if (!ex.bem) ex.bem = p;
     }
     exercises.push(ex);
   }
@@ -144,8 +181,28 @@ function parsePlan(text) {
 }
 
 // --- UI helpers ---
-const I = "h-[40px] p-2 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none w-full";
+const I_BASE = "h-[40px] p-2 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none w-full";
 const L = "block text-[10px] text-dim font-bold uppercase tracking-wider mb-0.5";
+
+// Input field with right-side unit suffix
+function UnitInput({ value, onChange, placeholder, unit, inputMode = 'numeric' }) {
+  return (
+    <div className="relative">
+      <input
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        inputMode={inputMode}
+        className={`${I_BASE} ${unit ? 'pr-9' : ''}`}
+      />
+      {unit && (
+        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-dim font-semibold pointer-events-none select-none">
+          {unit}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function Workout({ onDone }) {
   const [step, setStep] = useState('import'); // import | workout
@@ -156,6 +213,7 @@ export default function Workout({ onDone }) {
   const [sessionNote, setSessionNote] = useState('');
   const [saved, setSaved] = useState(false);
   const [confirmEarly, setConfirmEarly] = useState(false);
+  const [showInfoIdx, setShowInfoIdx] = useState(null); // which exercise's info is open
 
   function handleImport() {
     if (!planText.trim()) return;
@@ -170,8 +228,6 @@ export default function Workout({ onDone }) {
     setExercises(prev => prev.map((e, i) => i === idx ? { ...e, [field]: value } : e));
   }
 
-  // Bidirectional toggle. Setting done=true also collapses fields,
-  // unsetting opens them again so the user can edit.
   function toggleDone(idx) {
     setExercises(prev => prev.map((e, i) => i === idx ? { ...e, done: !e.done } : e));
   }
@@ -190,35 +246,38 @@ export default function Workout({ onDone }) {
     if (isCircuit) {
       entry.saetze = rounds || 1;
       entry.wdh = ex.wdh || '';
-      if (ex.gewicht) entry.gewicht = ex.gewicht;
+      if (ex.gewicht) {
+        entry.gewicht = ex.gewUnit === 'stufe' ? `Stufe ${ex.gewicht}` : `${ex.gewicht} kg`;
+      }
       const circuitTag = `${MODI[plan.modus]?.label || plan.modus}${plan.modusDetail ? ' ' + plan.modusDetail : ''}${rounds ? ' · ' + rounds + ' Runden' : ''}`;
       entry.bem = entry.bem ? entry.bem + '; ' + circuitTag : circuitTag;
     } else if (ftype === 'maschine' || ftype === 'kettlebell') {
       entry.saetze = Number(ex.saetze) || 1;
       entry.wdh = String(ex.wdh || '');
       if (ex.gewicht) {
-        // Append unit if user just typed a number
-        entry.gewicht = /kg|stufe/i.test(ex.gewicht) ? ex.gewicht : ex.gewicht + ' kg';
+        entry.gewicht = ex.gewUnit === 'stufe' ? `Stufe ${ex.gewicht}` : `${ex.gewicht} kg`;
       }
     } else if (ftype === 'eigen' || ftype === 'prev') {
       entry.saetze = Number(ex.saetze) || 1;
       entry.wdh = String(ex.wdh || '');
     } else if (ftype === 'cardio') {
       entry.saetze = 1;
-      entry.wdh = ex.dauer ? ex.dauer + ' min' : (ex.wdh || '');
-      if (ex.gewicht) entry.gewicht = /stufe/i.test(ex.gewicht) ? ex.gewicht : 'Stufe ' + ex.gewicht;
+      entry.wdh = ex.dauer ? `${ex.dauer} min` : (ex.wdh || '');
+      if (ex.gewicht) {
+        entry.gewicht = ex.gewUnit === 'stufe' ? `Stufe ${ex.gewicht}` : ex.gewicht;
+      }
       if (ex.hf) entry.hf = Number(ex.hf);
       if (ex.steigung) entry.bem = (entry.bem ? entry.bem + '; ' : '') + 'Steigung ' + ex.steigung + '%';
     } else if (ftype === 'outdoor') {
       entry.saetze = 1;
-      entry.wdh = ex.distanz ? ex.distanz + ' km' : (ex.wdh || '');
+      entry.wdh = ex.distanz ? `${ex.distanz} km` : (ex.wdh || '');
       if (ex.dauer) entry.dauer = ex.dauer;
       if (ex.hf) entry.hf = Number(ex.hf);
       if (ex.hoehenmeter) entry.hoehenmeter = Number(ex.hoehenmeter);
       if (ex.distanz && ex.dauer) entry.pace = calcPace(ex.distanz, ex.dauer);
     } else if (ftype === 'swim') {
       entry.saetze = 1;
-      entry.wdh = ex.distanz ? ex.distanz + ' m' : (ex.wdh || '');
+      entry.wdh = ex.distanz ? `${ex.distanz} m` : (ex.wdh || '');
       if (ex.dauer) entry.dauer = ex.dauer;
       if (ex.hf) entry.hf = Number(ex.hf);
       entry.schwimmort = ex.schwimmort || 'Pool';
@@ -303,6 +362,10 @@ export default function Workout({ onDone }) {
       {/* Exercise list — every card is independently editable */}
       {exercises.map((ex, idx) => {
         const ftype = getFieldType(ex.geraet);
+        // Description either from plan-INFO or fallback to library
+        const libInfo = getExerciseInfo(ex.name);
+        const description = ex.info || libInfo?.d;
+        const infoOpen = showInfoIdx === idx;
         return (
           <div key={idx} className={`bg-card rounded-2xl p-4 mb-2 border transition-all ${ex.done ? 'border-acc/40' : 'border-brd'}`}>
             {/* Header row */}
@@ -312,8 +375,15 @@ export default function Workout({ onDone }) {
                 className={`w-9 h-9 rounded-lg border-2 flex items-center justify-center cursor-pointer flex-shrink-0 ${ex.done ? 'bg-acc border-acc text-bg' : 'bg-transparent border-brd text-transparent'}`}>
                 {ex.done ? '✓' : ''}
               </button>
-              <div className="flex-1">
-                <div className={`font-bold text-base ${ex.done ? 'opacity-70' : ''}`}>{ex.name}</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className={`font-bold text-base truncate ${ex.done ? 'opacity-70' : ''}`}>{ex.name}</div>
+                  {description && (
+                    <button onClick={() => setShowInfoIdx(infoOpen ? null : idx)}
+                      title="Ausführung anzeigen"
+                      className="text-base bg-transparent border-none cursor-pointer p-0 leading-none flex-shrink-0">🏋️</button>
+                  )}
+                </div>
                 <div className="text-sm text-dim">
                   {ex.geraet}
                   {ex.einseitig && ' · Einseitig'}
@@ -321,17 +391,17 @@ export default function Workout({ onDone }) {
               </div>
             </div>
 
-            {/* Info text */}
-            {ex.info && !ex.done && (
-              <div className="bg-bg border border-brd rounded-lg p-2 mt-2 text-xs text-cblue">🏋️ {ex.info}</div>
+            {/* Info on toggle */}
+            {infoOpen && description && (
+              <div className="bg-bg border border-brd rounded-lg p-2.5 mt-2 text-xs text-cblue leading-relaxed">{description}</div>
             )}
 
             {/* === Edit fields (hidden when done — uncheck to edit again) === */}
             {!ex.done && !isCircuit && (
               <div className="mt-3 space-y-2">
 
-                {/* MASCHINE / KETTLEBELL */}
-                {(ftype === 'maschine' || ftype === 'kettlebell') && <>
+                {/* MASCHINE */}
+                {ftype === 'maschine' && <>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className={L}>Sätze</label>
@@ -343,11 +413,43 @@ export default function Workout({ onDone }) {
                     </div>
                     <div>
                       <label className={L}>Wdh</label>
-                      <input value={ex.wdh} onChange={e => updateEx(idx, 'wdh', e.target.value)} placeholder="12" inputMode="numeric" className={I} />
+                      <input value={ex.wdh} onChange={e => updateEx(idx, 'wdh', e.target.value)} placeholder="12" inputMode="numeric" className={I_BASE} />
                     </div>
                     <div>
                       <label className={L}>Gewicht</label>
-                      <input value={ex.gewicht} onChange={e => updateEx(idx, 'gewicht', e.target.value)} placeholder="25 kg" inputMode="text" className={I} />
+                      <UnitInput value={ex.gewicht} onChange={e => updateEx(idx, 'gewicht', e.target.value)} placeholder="22,5" unit={ex.gewUnit === 'stufe' ? 'Stufe' : 'kg'} inputMode="decimal" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => updateEx(idx, 'gewUnit', ex.gewUnit === 'kg' ? 'stufe' : 'kg')}
+                      className={`h-[36px] px-3 rounded-lg font-bold text-xs cursor-pointer border ${ex.gewUnit === 'stufe' ? 'bg-corange text-bg border-corange' : 'bg-bg text-dim border-brd'}`}>
+                      {ex.gewUnit === 'stufe' ? 'Stufe' : 'kg'} ⇄
+                    </button>
+                    <button onClick={() => updateEx(idx, 'einseitig', !ex.einseitig)}
+                      className={`h-[36px] px-3 rounded-lg font-bold text-xs cursor-pointer border ${ex.einseitig ? 'bg-gold text-bg border-gold' : 'bg-bg text-dim border-brd'}`}>
+                      {ex.einseitig ? '✓ Einseitig' : 'Beidseitig'}
+                    </button>
+                  </div>
+                </>}
+
+                {/* KETTLEBELL */}
+                {ftype === 'kettlebell' && <>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className={L}>Sätze</label>
+                      <div className="h-[40px] flex items-center bg-bg border border-brd rounded-lg">
+                        <button onClick={() => updateEx(idx, 'saetze', Math.max(1, (Number(ex.saetze)||1) - 1))} className="w-9 h-9 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">−</button>
+                        <span className="flex-1 text-center text-sm font-bold">{ex.saetze}</span>
+                        <button onClick={() => updateEx(idx, 'saetze', (Number(ex.saetze)||1) + 1)} className="w-9 h-9 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">+</button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className={L}>Wdh</label>
+                      <input value={ex.wdh} onChange={e => updateEx(idx, 'wdh', e.target.value)} placeholder="12" inputMode="numeric" className={I_BASE} />
+                    </div>
+                    <div>
+                      <label className={L}>Gewicht</label>
+                      <UnitInput value={ex.gewicht} onChange={e => updateEx(idx, 'gewicht', e.target.value)} placeholder="6" unit="kg" inputMode="decimal" />
                     </div>
                   </div>
                   <button onClick={() => updateEx(idx, 'einseitig', !ex.einseitig)}
@@ -369,7 +471,7 @@ export default function Workout({ onDone }) {
                     </div>
                     <div>
                       <label className={L}>Wdh / Sek</label>
-                      <input value={ex.wdh} onChange={e => updateEx(idx, 'wdh', e.target.value)} placeholder="12 oder 60 sek" className={I} />
+                      <input value={ex.wdh} onChange={e => updateEx(idx, 'wdh', e.target.value)} placeholder="12 oder 60 sek" className={I_BASE} />
                     </div>
                   </div>
                   {ftype === 'eigen' && (
@@ -384,22 +486,22 @@ export default function Workout({ onDone }) {
                 {ftype === 'cardio' && <>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className={L}>Dauer (min)</label>
-                      <input value={ex.dauer} onChange={e => updateEx(idx, 'dauer', e.target.value)} placeholder="25" inputMode="numeric" className={I} />
+                      <label className={L}>Dauer</label>
+                      <UnitInput value={ex.dauer} onChange={e => updateEx(idx, 'dauer', e.target.value)} placeholder="25" unit="min" inputMode="numeric" />
                     </div>
                     <div>
                       <label className={L}>Stufe / Widerstand</label>
-                      <input value={ex.gewicht} onChange={e => updateEx(idx, 'gewicht', e.target.value)} placeholder="12" className={I} />
+                      <UnitInput value={ex.gewicht} onChange={e => updateEx(idx, 'gewicht', e.target.value)} placeholder="12" unit="" inputMode="text" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className={L}>Ø HF</label>
-                      <input value={ex.hf} onChange={e => updateEx(idx, 'hf', e.target.value)} placeholder="148" inputMode="numeric" className={I} />
+                      <UnitInput value={ex.hf} onChange={e => updateEx(idx, 'hf', e.target.value)} placeholder="148" unit="bpm" inputMode="numeric" />
                     </div>
                     <div>
-                      <label className={L}>Steigung %</label>
-                      <input value={ex.steigung} onChange={e => updateEx(idx, 'steigung', e.target.value)} placeholder="1" inputMode="decimal" className={I} />
+                      <label className={L}>Steigung</label>
+                      <UnitInput value={ex.steigung} onChange={e => updateEx(idx, 'steigung', e.target.value)} placeholder="1" unit="%" inputMode="decimal" />
                     </div>
                   </div>
                 </>}
@@ -408,22 +510,22 @@ export default function Workout({ onDone }) {
                 {ftype === 'outdoor' && <>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className={L}>Distanz (km)</label>
-                      <input value={ex.distanz} onChange={e => updateEx(idx, 'distanz', e.target.value)} placeholder="7,01" inputMode="decimal" className={I} />
+                      <label className={L}>Distanz</label>
+                      <UnitInput value={ex.distanz} onChange={e => updateEx(idx, 'distanz', e.target.value)} placeholder="7,01" unit="km" inputMode="decimal" />
                     </div>
                     <div>
                       <label className={L}>Dauer (H:MM:SS)</label>
-                      <input value={ex.dauer} onChange={e => updateEx(idx, 'dauer', e.target.value)} placeholder="41:50" className={I} />
+                      <input value={ex.dauer} onChange={e => updateEx(idx, 'dauer', e.target.value)} placeholder="41:50" className={I_BASE} />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className={L}>Ø HF</label>
-                      <input value={ex.hf} onChange={e => updateEx(idx, 'hf', e.target.value)} placeholder="148" inputMode="numeric" className={I} />
+                      <UnitInput value={ex.hf} onChange={e => updateEx(idx, 'hf', e.target.value)} placeholder="148" unit="bpm" inputMode="numeric" />
                     </div>
                     <div>
                       <label className={L}>Höhenmeter</label>
-                      <input value={ex.hoehenmeter} onChange={e => updateEx(idx, 'hoehenmeter', e.target.value)} placeholder="283" inputMode="numeric" className={I} />
+                      <UnitInput value={ex.hoehenmeter} onChange={e => updateEx(idx, 'hoehenmeter', e.target.value)} placeholder="283" unit="hm" inputMode="numeric" />
                     </div>
                   </div>
                   {ex.distanz && ex.dauer && (
@@ -437,18 +539,18 @@ export default function Workout({ onDone }) {
                 {ftype === 'swim' && <>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className={L}>Distanz (m)</label>
-                      <input value={ex.distanz} onChange={e => updateEx(idx, 'distanz', e.target.value)} placeholder="800" inputMode="numeric" className={I} />
+                      <label className={L}>Distanz</label>
+                      <UnitInput value={ex.distanz} onChange={e => updateEx(idx, 'distanz', e.target.value)} placeholder="800" unit="m" inputMode="numeric" />
                     </div>
                     <div>
                       <label className={L}>Dauer (MM:SS)</label>
-                      <input value={ex.dauer} onChange={e => updateEx(idx, 'dauer', e.target.value)} placeholder="18:30" className={I} />
+                      <input value={ex.dauer} onChange={e => updateEx(idx, 'dauer', e.target.value)} placeholder="18:30" className={I_BASE} />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className={L}>Ø HF</label>
-                      <input value={ex.hf} onChange={e => updateEx(idx, 'hf', e.target.value)} placeholder="142" inputMode="numeric" className={I} />
+                      <UnitInput value={ex.hf} onChange={e => updateEx(idx, 'hf', e.target.value)} placeholder="142" unit="bpm" inputMode="numeric" />
                     </div>
                     <div>
                       <label className={L}>Ort</label>
@@ -468,7 +570,7 @@ export default function Workout({ onDone }) {
                 {/* Bemerkung (alle Typen) */}
                 <div>
                   <label className={L}>Bemerkung</label>
-                  <input value={ex.bem} onChange={e => updateEx(idx, 'bem', e.target.value)} placeholder="Optional…" className={I} />
+                  <input value={ex.bem} onChange={e => updateEx(idx, 'bem', e.target.value)} placeholder="Optional…" className={I_BASE} />
                 </div>
               </div>
             )}
@@ -478,11 +580,11 @@ export default function Workout({ onDone }) {
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <div>
                   <label className={L}>Wdh / Runde</label>
-                  <input value={ex.wdh} onChange={e => updateEx(idx, 'wdh', e.target.value)} placeholder="15" className={I} />
+                  <input value={ex.wdh} onChange={e => updateEx(idx, 'wdh', e.target.value)} placeholder="15" className={I_BASE} />
                 </div>
                 <div>
                   <label className={L}>Gewicht (optional)</label>
-                  <input value={ex.gewicht} onChange={e => updateEx(idx, 'gewicht', e.target.value)} placeholder="12 kg" className={I} />
+                  <UnitInput value={ex.gewicht} onChange={e => updateEx(idx, 'gewicht', e.target.value)} placeholder="12" unit="kg" inputMode="decimal" />
                 </div>
               </div>
             )}
@@ -492,9 +594,9 @@ export default function Workout({ onDone }) {
               <div className="text-xs text-dim mt-2 ml-12">
                 {!isCircuit && ex.saetze > 0 && `${ex.saetze}× `}
                 {ex.wdh && `${ex.wdh}`}
-                {ex.dauer && ` · ${ex.dauer} min`}
-                {ex.distanz && ` · ${ex.distanz}${ftype === 'swim' ? 'm' : 'km'}`}
-                {ex.gewicht && ` · ${ex.gewicht}`}
+                {ex.dauer && ` · ${ex.dauer}${ftype === 'cardio' ? ' min' : ''}`}
+                {ex.distanz && ` · ${ex.distanz}${ftype === 'swim' ? ' m' : ' km'}`}
+                {ex.gewicht && ` · ${ex.gewicht}${ex.gewUnit === 'kg' ? ' kg' : (ex.gewUnit === 'stufe' ? ' (Stufe)' : '')}`}
                 {ex.hf && ` · ♥ ${ex.hf}`}
                 {ex.hoehenmeter && ` · ${ex.hoehenmeter} hm`}
                 {ex.bem && ` · ${ex.bem}`}

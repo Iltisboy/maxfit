@@ -88,21 +88,6 @@ export default function More() {
       .filter(e => e.gewicht !== null);
   }
 
-  // --- Cardio data (Outdoor) for HF graph (with timestamp)
-  function getCardioData() {
-    return entries
-      .filter(e => e.typ === 'outdoor' || e.geraet === 'Outdoor')
-      .sort((a, b) => a.datum.localeCompare(b.datum))
-      .map(e => ({
-        ts: tsOf(e.datum),
-        datum: fmt(e.datum),
-        uebung: e.uebung,
-        hf: e.hf || null,
-        pace: e.pace || e.gewicht || '',
-      }))
-      .filter(e => e.hf);
-  }
-
   // --- Body weight chart data (with timestamp)
   function getBodyWeightChart() {
     return [...bwData]
@@ -232,7 +217,6 @@ export default function More() {
   // --- Stats with time-based axis charts
   if (view === 'stats') {
     const exData = selExercise ? getExData(selExercise) : [];
-    const cardioData = getCardioData();
     const bwChart = getBodyWeightChart();
 
     return (
@@ -265,27 +249,6 @@ export default function More() {
             <p className="text-sm text-dim text-center py-4">{selExercise ? 'Mindestens 2 Einträge nötig' : 'Wähle eine Übung'}</p>
           )}
         </div>
-
-        {/* Cardio HF */}
-        {cardioData.length > 1 && (
-          <>
-            <h2 className="text-xl font-bold mb-3">❤️ Cardio Outdoor – Herzfrequenz</h2>
-            <div className="bg-card rounded-2xl p-4 border border-brd mb-4">
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={cardioData}>
-                  <XAxis {...TIME_AXIS_PROPS} />
-                  <YAxis tick={{ fill: '#7b7f9e', fontSize: 10 }} unit=" bpm" domain={['auto', 'auto']} />
-                  <Tooltip
-                    contentStyle={TOOLTIP_STYLE}
-                    labelFormatter={tsTooltipFmt}
-                    formatter={(value) => [`${value} bpm`, 'Ø HF']}
-                  />
-                  <Line type="monotone" dataKey="hf" stroke="#f87171" strokeWidth={2} dot={{ fill: '#f87171', r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </>
-        )}
 
         {/* Bodyweight chart in stats overview */}
         {bwChart.length >= 1 && (
