@@ -47,6 +47,7 @@ export default function More() {
   const [goal, setGoal] = useState({ name: '', datum: '', details: '' });
   const [goals, setGoals] = useState([]);
   const [libCat, setLibCat] = useState(null);
+  const [libSearch, setLibSearch] = useState('');
   const [toast, setToast] = useState(null);
   const [searchQ, setSearchQ] = useState('');
   const [bwForm, setBwForm] = useState({ datum: localDate(), gewicht: '' });
@@ -186,30 +187,54 @@ export default function More() {
 
   // --- Library
   if (view === 'lib') {
+    const q = libSearch.trim().toLowerCase();
     return (
       <div className="px-5 pt-4 pb-4">
         <BackBtn />
         <h2 className="text-xl font-bold mb-3">📚 Übungsbibliothek</h2>
-        {Object.entries(EXERCISE_LIB).map(([cat, exs]) => (
-          <div key={cat} className="mb-2">
-            <button onClick={() => setLibCat(libCat === cat ? null : cat)}
-              className="w-full bg-card border border-brd rounded-2xl p-4 text-left cursor-pointer">
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-base">{cat}</span>
-                <span className="text-sm text-dim">{exs.length} {libCat === cat ? '▲' : '▼'}</span>
-              </div>
-            </button>
-            {libCat === cat && exs.map((ex, i) => (
-              <div key={i} className="bg-card border border-brd rounded-xl p-3 mt-1">
+
+        <div className="relative mb-3">
+          <input
+            value={libSearch}
+            onChange={e => setLibSearch(e.target.value)}
+            placeholder="Übung suchen…"
+            className="w-full h-[44px] pl-10 pr-9 bg-bg border border-brd rounded-xl text-t-primary text-sm outline-none"
+          />
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dim text-base pointer-events-none">🔍</span>
+          {libSearch && (
+            <button onClick={() => setLibSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-dim bg-transparent border-none cursor-pointer">✕</button>
+          )}
+        </div>
+
+        {Object.entries(EXERCISE_LIB).map(([cat, exs]) => {
+          const filtered = q ? exs.filter(ex => ex.n.toLowerCase().includes(q)) : exs;
+          if (q && filtered.length === 0) return null;
+          const isOpen = q ? true : libCat === cat;
+          return (
+            <div key={cat} className="mb-2">
+              <button onClick={() => !q && setLibCat(libCat === cat ? null : cat)}
+                className="w-full bg-card border border-brd rounded-2xl p-4 text-left cursor-pointer">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-base">{ex.n}</span>
-                  {ex.e && <span className="text-xs text-gold border border-gold px-1.5 rounded">Einseitig</span>}
+                  <span className="font-bold text-base">{cat}</span>
+                  <span className="text-sm text-dim">{filtered.length}{q ? ` / ${exs.length}` : ''} {!q && (isOpen ? '▲' : '▼')}</span>
                 </div>
-                <p className="text-xs text-cblue mt-1 leading-relaxed">{ex.d}</p>
-              </div>
-            ))}
-          </div>
-        ))}
+              </button>
+              {isOpen && filtered.map((ex, i) => (
+                <div key={i} className="bg-card border border-brd rounded-xl p-3 mt-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-base">{ex.n}</span>
+                    {ex.e && <span className="text-xs text-gold border border-gold px-1.5 rounded">Einseitig</span>}
+                  </div>
+                  <p className="text-xs text-cblue mt-1 leading-relaxed">{ex.d}</p>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+        {q && Object.values(EXERCISE_LIB).every(exs => exs.filter(ex => ex.n.toLowerCase().includes(q)).length === 0) && (
+          <p className="text-dim text-center py-6">Keine Treffer für „{libSearch}“</p>
+        )}
       </div>
     );
   }

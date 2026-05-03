@@ -19,7 +19,7 @@ const I = "h-[42px] p-2 bg-bg border border-brd rounded-lg text-t-primary text-s
 const L = "block text-[10px] text-dim font-bold uppercase tracking-wider mb-0.5";
 
 // Input field with right-side unit suffix
-function UnitInput({ value, onChange, placeholder, unit, inputMode = 'numeric', type, style }) {
+function UnitInput({ value, onChange, placeholder, unit, inputMode = 'numeric', type, style, height = 42 }) {
   return (
     <div className="relative">
       <input
@@ -28,8 +28,8 @@ function UnitInput({ value, onChange, placeholder, unit, inputMode = 'numeric', 
         placeholder={placeholder}
         inputMode={inputMode}
         type={type}
-        style={style}
-        className={`h-[42px] p-2 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none w-full ${unit ? 'pr-9' : ''}`}
+        style={{ ...style, height: `${height}px` }}
+        className={`p-2 bg-bg border border-brd rounded-lg text-t-primary text-sm outline-none w-full ${unit ? 'pr-9' : ''}`}
       />
       {unit && (
         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-dim font-semibold pointer-events-none select-none">
@@ -58,7 +58,6 @@ export default function Training({ editEntry, onDone }) {
 
   useEffect(() => { db.entries.toArray().then(a => setAllEx([...new Set(a.map(e => e.uebung))].sort())); }, [savedCount]);
 
-  // Helper to strip "kg"/"Stufe X"/etc when loading an existing entry for editing
   function stripUnit(s, kind) {
     if (!s) return '';
     const str = String(s).trim();
@@ -124,6 +123,7 @@ export default function Training({ editEntry, onDone }) {
     if (selType === 'maschine' || selType === 'kb') {
       e.saetze = Number(form.saetze) || 1;
       e.wdh = String(form.wdh);
+      if (selType === 'kb' && wdhUnit === 'sek') e.wdh = e.wdh + ' sek';
       if (form.gewicht) {
         e.gewicht = gewUnit === 'stufe' ? `Stufe ${form.gewicht}` : `${form.gewicht} kg`;
       }
@@ -197,6 +197,40 @@ export default function Training({ editEntry, onDone }) {
     </div>
   );
 
+  // Reusable layout pieces
+
+  const SaetzeStepper = ({ height = 42 }) => (
+    <div className="flex items-center bg-bg border border-brd rounded-lg" style={{ height: `${height}px` }}>
+      <button onClick={() => setForm({...form, saetze: Math.max(1, form.saetze-1)})} className="w-10 h-full text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">−</button>
+      <span className="flex-1 text-center text-base font-bold">{form.saetze}</span>
+      <button onClick={() => setForm({...form, saetze: form.saetze+1})} className="w-10 h-full text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">+</button>
+    </div>
+  );
+
+  const WdhSekToggle = ({ height = 42 }) => (
+    <button onClick={() => setWdhUnit(wdhUnit === 'wdh' ? 'sek' : 'wdh')}
+      style={{ height: `${height}px` }}
+      className={`w-full flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border ${wdhUnit === 'sek' ? 'bg-corange text-bg border-corange' : 'bg-bg text-dim border-brd'}`}>
+      {wdhUnit === 'wdh' ? 'Wdh' : 'Sek'} ⇄
+    </button>
+  );
+
+  const KgStufeToggle = ({ height = 42 }) => (
+    <button onClick={() => setGewUnit(gewUnit === 'kg' ? 'stufe' : 'kg')}
+      style={{ height: `${height}px` }}
+      className={`w-full flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border ${gewUnit === 'stufe' ? 'bg-corange text-bg border-corange' : 'bg-bg text-dim border-brd'}`}>
+      {gewUnit === 'kg' ? 'kg' : 'Stufe'} ⇄
+    </button>
+  );
+
+  const EinseitigToggle = ({ height = 42, label }) => (
+    <button onClick={() => setForm({...form, einseitig: !form.einseitig})}
+      style={{ height: `${height}px` }}
+      className={`w-full flex items-center justify-center rounded-lg font-bold text-[10px] cursor-pointer border ${form.einseitig ? 'bg-gold text-bg border-gold' : 'bg-bg text-dim border-brd'}`}>
+      {label || (form.einseitig ? '1-seitig' : '2-seitig')}
+    </button>
+  );
+
   return (
     <div className="px-4 pt-3 pb-4">
       {saved && <div className="fixed top-3 left-1/2 -translate-x-1/2 bg-acc text-bg px-5 py-2 rounded-full text-sm font-bold z-50">Gespeichert ✓</div>}
@@ -208,8 +242,8 @@ export default function Training({ editEntry, onDone }) {
       </div>
       {savedCount > 0 && !saved && <div className="text-[10px] text-dim mb-2 text-center">{savedCount} Übung(en) eingetragen</div>}
 
-      {/* Datum + Übung row */}
-      <div className="grid gap-2 mb-3" style={{ gridTemplateColumns: '130px 1fr' }}>
+      {/* Datum + Übung row (more breathing room between fields) */}
+      <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: '130px 1fr' }}>
         <div className="overflow-hidden">
           <label className={L}>Datum</label>
           <input type="date" value={form.datum} onChange={e => setForm({...form, datum: e.target.value})} className={I} style={{ fontSize: 13, padding: '0 6px' }} />
@@ -230,23 +264,23 @@ export default function Training({ editEntry, onDone }) {
           <div className="col-span-2">
             <label className={L}>Gerät</label>
             <button onClick={() => setForm({...form, geraet: form.geraet === 'Kabelzug' ? 'Maschine' : 'Kabelzug'})}
-              className={`w-full h-[42px] flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border bg-acc text-bg border-acc`}>
+              className={`w-full h-[42px] flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border ${form.geraet === 'Kabelzug' ? 'bg-corange text-bg border-corange' : 'bg-acc text-bg border-acc'}`}>
               {form.geraet === 'Kabelzug' ? 'Kabelzug' : 'Maschine'} ⇄
             </button>
           </div>
-          <div className="col-span-2">
-            <label className={L}>Gewicht</label>
-            <UnitInput value={form.gewicht} onChange={e => setForm({...form, gewicht: e.target.value})} placeholder="22,5" unit={gewUnit === 'stufe' ? 'Stufe' : 'kg'} inputMode="decimal" />
+          <div>
+            <label className={L}>Wert</label>
+            <UnitInput value={form.gewicht} onChange={e => setForm({...form, gewicht: e.target.value})} placeholder="22,5" unit={gewUnit === 'stufe' ? 'St.' : 'kg'} inputMode="decimal" />
+          </div>
+          <div>
+            <label className={L}>&nbsp;</label>
+            <KgStufeToggle />
           </div>
         </div>
         <div className="grid grid-cols-4 gap-2 mb-3">
           <div className="col-span-2">
             <label className={L}>Sätze</label>
-            <div className="h-[42px] flex items-center bg-bg border border-brd rounded-lg">
-              <button onClick={() => setForm({...form, saetze: Math.max(1, form.saetze-1)})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">−</button>
-              <span className="flex-1 text-center text-base font-bold">{form.saetze}</span>
-              <button onClick={() => setForm({...form, saetze: form.saetze+1})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">+</button>
-            </div>
+            <SaetzeStepper />
           </div>
           <div>
             <label className={L}>Wdh</label>
@@ -254,17 +288,8 @@ export default function Training({ editEntry, onDone }) {
           </div>
           <div>
             <label className={L}>&nbsp;</label>
-            <button onClick={() => setForm({...form, einseitig: !form.einseitig})}
-              className={`w-full h-[42px] flex items-center justify-center rounded-lg font-bold text-[10px] cursor-pointer border ${form.einseitig ? 'bg-gold text-bg border-gold' : 'bg-bg text-dim border-brd'}`}>
-              {form.einseitig ? '1-seitig' : '2-seitig'}
-            </button>
+            <EinseitigToggle />
           </div>
-        </div>
-        <div className="mb-3">
-          <button onClick={() => setGewUnit(gewUnit === 'kg' ? 'stufe' : 'kg')}
-            className={`h-[36px] px-3 rounded-lg font-bold text-xs cursor-pointer border ${gewUnit === 'stufe' ? 'bg-corange text-bg border-corange' : 'bg-bg text-dim border-brd'}`}>
-            {gewUnit === 'kg' ? 'kg' : 'Stufe'} ⇄
-          </button>
         </div>
       </>}
 
@@ -273,22 +298,18 @@ export default function Training({ editEntry, onDone }) {
         <div className="grid grid-cols-4 gap-2 mb-3">
           <div className="col-span-2">
             <label className={L}>Sätze</label>
-            <div className="h-[42px] flex items-center bg-bg border border-brd rounded-lg">
-              <button onClick={() => setForm({...form, saetze: Math.max(1, form.saetze-1)})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">−</button>
-              <span className="flex-1 text-center text-base font-bold">{form.saetze}</span>
-              <button onClick={() => setForm({...form, saetze: form.saetze+1})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">+</button>
-            </div>
+            <SaetzeStepper />
           </div>
-          <div className="col-span-2">
+          <div>
             <label className={L}>Wert</label>
             <UnitInput value={form.wdh} onChange={e => setForm({...form, wdh: e.target.value})} placeholder="12" unit={wdhUnit === 'sek' ? 'Sek' : 'Wdh'} inputMode="numeric" />
           </div>
+          <div>
+            <label className={L}>&nbsp;</label>
+            <WdhSekToggle />
+          </div>
         </div>
-        <div className="flex gap-2 mb-3">
-          <button onClick={() => setWdhUnit(wdhUnit === 'wdh' ? 'sek' : 'wdh')}
-            className={`h-[42px] px-3 rounded-lg font-bold text-xs cursor-pointer border ${wdhUnit === 'sek' ? 'bg-corange text-bg border-corange' : 'bg-bg text-dim border-brd'}`}>
-            {wdhUnit === 'wdh' ? 'Wdh' : 'Sek'} ⇄
-          </button>
+        <div className="mb-3">
           <button onClick={() => setForm({...form, einseitig: !form.einseitig})}
             className={`h-[42px] px-4 flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border ${form.einseitig ? 'bg-gold text-bg border-gold' : 'bg-bg text-dim border-brd'}`}>
             {form.einseitig ? '✓ Einseitig' : 'Beidseitig'}
@@ -301,15 +322,15 @@ export default function Training({ editEntry, onDone }) {
         <div className="grid grid-cols-4 gap-2 mb-3">
           <div className="col-span-2">
             <label className={L}>Sätze</label>
-            <div className="h-[42px] flex items-center bg-bg border border-brd rounded-lg">
-              <button onClick={() => setForm({...form, saetze: Math.max(1, form.saetze-1)})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">−</button>
-              <span className="flex-1 text-center text-base font-bold">{form.saetze}</span>
-              <button onClick={() => setForm({...form, saetze: form.saetze+1})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">+</button>
-            </div>
+            <SaetzeStepper />
           </div>
-          <div className="col-span-2">
+          <div>
             <label className={L}>Wert</label>
             <UnitInput value={form.wdh} onChange={e => setForm({...form, wdh: e.target.value})} placeholder="12" unit={wdhUnit === 'sek' ? 'Sek' : 'Wdh'} inputMode="numeric" />
+          </div>
+          <div>
+            <label className={L}>&nbsp;</label>
+            <WdhSekToggle />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 mb-3">
@@ -319,16 +340,10 @@ export default function Training({ editEntry, onDone }) {
           </div>
           <div>
             <label className={L}>&nbsp;</label>
-            <div className="flex gap-2">
-              <button onClick={() => setWdhUnit(wdhUnit === 'wdh' ? 'sek' : 'wdh')}
-                className={`flex-1 h-[42px] flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border ${wdhUnit === 'sek' ? 'bg-corange text-bg border-corange' : 'bg-bg text-dim border-brd'}`}>
-                {wdhUnit === 'wdh' ? 'Wdh' : 'Sek'} ⇄
-              </button>
-              <button onClick={() => setForm({...form, einseitig: !form.einseitig})}
-                className={`flex-1 h-[42px] flex items-center justify-center rounded-lg font-bold text-[10px] cursor-pointer border ${form.einseitig ? 'bg-gold text-bg border-gold' : 'bg-bg text-dim border-brd'}`}>
-                {form.einseitig ? '1-seitig' : '2-seitig'}
-              </button>
-            </div>
+            <button onClick={() => setForm({...form, einseitig: !form.einseitig})}
+              className={`w-full h-[42px] flex items-center justify-center rounded-lg font-bold text-xs cursor-pointer border ${form.einseitig ? 'bg-gold text-bg border-gold' : 'bg-bg text-dim border-brd'}`}>
+              {form.einseitig ? '✓ Einseitig' : 'Beidseitig'}
+            </button>
           </div>
         </div>
       </>}
@@ -382,22 +397,16 @@ export default function Training({ editEntry, onDone }) {
         <div className="grid grid-cols-4 gap-2 mb-3">
           <div className="col-span-2">
             <label className={L}>Sätze</label>
-            <div className="h-[42px] flex items-center bg-bg border border-brd rounded-lg">
-              <button onClick={() => setForm({...form, saetze: Math.max(1, form.saetze-1)})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">−</button>
-              <span className="flex-1 text-center text-base font-bold">{form.saetze}</span>
-              <button onClick={() => setForm({...form, saetze: form.saetze+1})} className="w-10 h-10 text-t-primary text-lg font-bold cursor-pointer bg-transparent border-none">+</button>
-            </div>
+            <SaetzeStepper />
           </div>
-          <div className="col-span-2">
+          <div>
             <label className={L}>Wert</label>
             <UnitInput value={form.wdh} onChange={e => setForm({...form, wdh: e.target.value})} placeholder="12" unit={wdhUnit === 'sek' ? 'Sek' : 'Wdh'} inputMode="numeric" />
           </div>
-        </div>
-        <div className="mb-3">
-          <button onClick={() => setWdhUnit(wdhUnit === 'wdh' ? 'sek' : 'wdh')}
-            className={`h-[42px] px-3 rounded-lg font-bold text-xs cursor-pointer border ${wdhUnit === 'sek' ? 'bg-corange text-bg border-corange' : 'bg-bg text-dim border-brd'}`}>
-            {wdhUnit === 'wdh' ? 'Wdh' : 'Sek'} ⇄
-          </button>
+          <div>
+            <label className={L}>&nbsp;</label>
+            <WdhSekToggle />
+          </div>
         </div>
       </>}
 

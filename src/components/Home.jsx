@@ -92,17 +92,20 @@ export default function Home({ onStartWorkout }) {
         </div>
       )}
 
-      {/* Export for Claude */}
-      <button onClick={handleExport}
-        className="w-full py-4 bg-gradient-to-r from-acc to-acc-d text-bg font-bold text-base rounded-2xl border-none cursor-pointer">
-        🤖 Trainingsplan anfordern
-      </button>
+      {/* Action buttons */}
+      <div className="grid grid-cols-2 gap-3">
+        <button onClick={handleExport}
+          className="py-4 px-3 bg-gradient-to-r from-acc to-acc-d text-bg font-bold text-sm rounded-2xl border-none cursor-pointer flex flex-col items-center justify-center gap-1 leading-tight">
+          <span className="text-xl">🤖</span>
+          <span>Trainingsplan anfordern</span>
+        </button>
 
-      {/* Start Workout */}
-      <button onClick={onStartWorkout}
-        className="w-full py-4 bg-card border-2 border-corange text-corange font-bold text-base rounded-2xl cursor-pointer">
-        🔥 Workout starten (Plan importieren)
-      </button>
+        <button onClick={onStartWorkout}
+          className="py-4 px-3 bg-card border-2 border-corange text-corange font-bold text-sm rounded-2xl cursor-pointer flex flex-col items-center justify-center gap-1 leading-tight">
+          <span className="text-xl">🔥</span>
+          <span>Workout starten</span>
+        </button>
+      </div>
 
       {/* Export Modal */}
       {showExport && (
