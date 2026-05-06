@@ -45,7 +45,7 @@ export default function Training({ editEntry, onDone }) {
   const [form, setForm] = useState({
     datum: today(), uebung: '', geraet: '', einseitig: false,
     saetze: 3, wdh: '', gewicht: '', bem: '', typ: '',
-    dauer: '', distanz: '', hf: '', hoehenmeter: '', steigung: '', schwimmort: 'Pool'
+    dauer: '', distanz: '', hf: '', hoehenmeter: '', steigung: '', rpm: '', watt: '', schwimmort: 'Pool'
   });
   const [gewUnit, setGewUnit] = useState('kg'); // 'kg' | 'stufe'
   const [wdhUnit, setWdhUnit] = useState('wdh'); // 'wdh' | 'sek'
@@ -165,7 +165,11 @@ export default function Training({ editEntry, onDone }) {
       e.wdh = form.dauer ? form.dauer + ' min' : '';
       if (form.gewicht) e.gewicht = `Stufe ${form.gewicht}`;
       if (form.hf) e.hf = Number(form.hf);
-      if (form.steigung) e.bem = (form.bem ? form.bem + '; ' : '') + 'Steigung ' + form.steigung + '%';
+      const extras = [];
+      if (form.steigung) extras.push('Steigung ' + form.steigung + '%');
+      if (form.rpm) extras.push(form.rpm + ' rpm');
+      if (form.watt) extras.push(form.watt + ' W');
+      if (extras.length) e.bem = (form.bem ? form.bem + '; ' : '') + extras.join('; ');
     } else if (selType === 'outdoor') {
       e.saetze = 1;
       e.wdh = form.distanz ? form.distanz + ' km' : '';
@@ -183,7 +187,7 @@ export default function Training({ editEntry, onDone }) {
     }
 
     if (form.bem && selType !== 'cardio') e.bem = form.bem;
-    if (selType === 'cardio' && form.bem && !form.steigung) e.bem = form.bem;
+    if (selType === 'cardio' && form.bem && !form.steigung && !form.rpm && !form.watt) e.bem = form.bem;
     Object.keys(e).forEach(k => { if (e[k] === '' || e[k] === undefined || e[k] === null) delete e[k]; });
     return e;
   }
@@ -201,7 +205,7 @@ export default function Training({ editEntry, onDone }) {
     setSaved(true); setSavedCount(c => c + 1);
     setTimeout(() => {
       setSaved(false);
-      setForm(f => ({ datum: f.datum, uebung: '', geraet: f.geraet, einseitig: false, saetze: 3, wdh: '', gewicht: '', bem: '', typ: f.typ, dauer: '', distanz: '', hf: '', hoehenmeter: '', steigung: '', schwimmort: f.schwimmort || 'Pool' }));
+      setForm(f => ({ datum: f.datum, uebung: '', geraet: f.geraet, einseitig: false, saetze: 3, wdh: '', gewicht: '', bem: '', typ: f.typ, dauer: '', distanz: '', hf: '', hoehenmeter: '', steigung: '', rpm: '', watt: '', schwimmort: f.schwimmort || 'Pool' }));
       setInfo(null); setShowInfo(false);
     }, 700);
   }
@@ -383,16 +387,23 @@ export default function Training({ editEntry, onDone }) {
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div>
             <label className={L}>Dauer</label>
-            <input value={form.dauer} onChange={e => setForm({...form, dauer: e.target.value})}
-              placeholder="25 oder 25:30" inputMode="text" className={I} />
+            <UnitInput value={form.dauer} onChange={e => setForm({...form, dauer: e.target.value})}
+              placeholder="25 oder 25:30" unit="min:sek" inputMode="text" />
           </div>
           <div><label className={L}>Stufe / Widerstand</label><input value={form.gewicht} onChange={e => setForm({...form, gewicht: e.target.value})} placeholder="12" inputMode="text" className={I} /></div>
         </div>
         <div className="grid grid-cols-2 gap-2 mb-3">
-          <div><label className={L}>Ø HF</label><UnitInput value={form.hf} onChange={e => setForm({...form, hf: e.target.value})} placeholder="148" unit="bpm" inputMode="numeric" type="number" /></div>
+          <div><label className={L}>{'\u00d8'} HF</label><UnitInput value={form.hf} onChange={e => setForm({...form, hf: e.target.value})} placeholder="148" unit="bpm" inputMode="numeric" type="number" /></div>
           <div><label className={L}>Steigung</label><UnitInput value={form.steigung} onChange={e => setForm({...form, steigung: e.target.value})} placeholder="1" unit="%" inputMode="decimal" /></div>
         </div>
-        <p className="text-[10px] text-mut mb-3">Tipp: Dauer kann „25“ (Minuten) oder „25:30“ (MM:SS) sein.</p>
+        {/* RPM + Watt only for Bike, Crosstrainer, Spinning */}
+        {['Bike', 'Crosstrainer', 'Spinning'].includes(form.uebung) && (
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div><label className={L}>Trittfrequenz</label><UnitInput value={form.rpm} onChange={e => setForm({...form, rpm: e.target.value})} placeholder="90" unit="U/min" inputMode="numeric" /></div>
+            <div><label className={L}>Leistung</label><UnitInput value={form.watt} onChange={e => setForm({...form, watt: e.target.value})} placeholder="180" unit="W" inputMode="numeric" /></div>
+          </div>
+        )}
+        <p className="text-[10px] text-mut mb-3">Tipp: Dauer kann 25 (Minuten) oder 25:30 (MM:SS) sein.</p>
       </>}
 
       {/* ===== OUTDOOR ===== */}

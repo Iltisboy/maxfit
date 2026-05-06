@@ -7,7 +7,7 @@ function fmt(d) {
 }
 
 // Generate text export for Claude
-export function exportForClaude(entries, maxSessions = 25) {
+export function exportForClaude(entries, maxSessions = 50) {
   const dates = [...new Set(entries.map(e => e.datum))].sort((a, b) => b.localeCompare(a)).slice(0, maxSessions);
   const filtered = entries.filter(e => dates.includes(e.datum)).sort((a, b) => a.datum.localeCompare(b.datum));
 

@@ -148,6 +148,12 @@ function parsePlan(text) {
       if (/^freiwasser$/i.test(p)) { ex.schwimmort = 'Freiwasser'; continue; }
       const stm = p.match(/^Steigung\s*([\d.,]+)\s*%?$/i);
       if (stm) { ex.steigung = stm[1].replace('.', ','); continue; }
+      // RPM / Trittfrequenz
+      const rpmm = p.match(/^([\d.,]+)\s*(rpm|u\/min)$/i);
+      if (rpmm) { ex.rpm = rpmm[1].replace('.', ','); continue; }
+      // Watt
+      const wattm = p.match(/^([\d.,]+)\s*w(att)?$/i);
+      if (wattm) { ex.watt = wattm[1].replace('.', ','); continue; }
       if (/^[\d.,]+\s*kg$/i.test(p)) {
         ex.gewicht = p.replace(/\s*kg$/i, '').replace('.', ',').trim();
         ex.gewUnit = 'kg';
@@ -181,6 +187,8 @@ function blankExercise(name, geraet) {
     hf: '',
     hoehenmeter: '',
     steigung: '',
+    rpm: '',
+    watt: '',
     schwimmort: 'Pool',
     bem: '',
   };
@@ -325,7 +333,12 @@ export default function Workout({ onDone }) {
         entry.gewicht = /stufe/i.test(ex.gewicht) ? ex.gewicht : `Stufe ${ex.gewicht}`;
       }
       if (ex.hf) entry.hf = Number(ex.hf);
-      if (ex.steigung) entry.bem = (entry.bem ? entry.bem + '; ' : '') + 'Steigung ' + ex.steigung + '%';
+      // Build extras for bem: Steigung, RPM, Watt
+      const extras = [];
+      if (ex.steigung) extras.push('Steigung ' + ex.steigung + '%');
+      if (ex.rpm) extras.push(ex.rpm + ' rpm');
+      if (ex.watt) extras.push(ex.watt + ' W');
+      if (extras.length) entry.bem = (entry.bem ? entry.bem + '; ' : '') + extras.join('; ');
     } else if (ftype === 'outdoor') {
       entry.saetze = 1;
       entry.wdh = ex.distanz ? `${ex.distanz} km` : (ex.wdh || '');
@@ -647,13 +660,13 @@ export default function Workout({ onDone }) {
                   </div>
                 </>}
 
-                {/* CARDIO GYM — accepts plain min OR MM:SS */}
+                {/* CARDIO GYM */}
                 {ftype === 'cardio' && <>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className={L}>Dauer</label>
-                      <input value={ex.dauer} onChange={e => updateEx(idx, 'dauer', e.target.value)}
-                        placeholder="25 oder 25:30" inputMode="text" className={I_BASE} />
+                      <UnitInput value={ex.dauer} onChange={e => updateEx(idx, 'dauer', e.target.value)}
+                        placeholder="25 oder 25:30" unit="min:sek" inputMode="text" />
                     </div>
                     <div>
                       <label className={L}>Stufe / Widerstand</label>
@@ -662,7 +675,7 @@ export default function Workout({ onDone }) {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className={L}>Ø HF</label>
+                      <label className={L}>{'\u00d8'} HF</label>
                       <UnitInput value={ex.hf} onChange={e => updateEx(idx, 'hf', e.target.value)} placeholder="148" unit="bpm" inputMode="numeric" />
                     </div>
                     <div>
@@ -670,7 +683,20 @@ export default function Workout({ onDone }) {
                       <UnitInput value={ex.steigung} onChange={e => updateEx(idx, 'steigung', e.target.value)} placeholder="1" unit="%" inputMode="decimal" />
                     </div>
                   </div>
-                  <p className="text-[10px] text-mut">Tipp: „25" oder „25:30" — beides möglich.</p>
+                  {/* RPM + Watt only for Bike, Crosstrainer, Spinning */}
+                  {['Bike', 'Crosstrainer', 'Spinning'].includes(ex.name) && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className={L}>Trittfrequenz</label>
+                        <UnitInput value={ex.rpm} onChange={e => updateEx(idx, 'rpm', e.target.value)} placeholder="90" unit="U/min" inputMode="numeric" />
+                      </div>
+                      <div>
+                        <label className={L}>Leistung</label>
+                        <UnitInput value={ex.watt} onChange={e => updateEx(idx, 'watt', e.target.value)} placeholder="180" unit="W" inputMode="numeric" />
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-mut">Tipp: 25 (Minuten) oder 25:30 (MM:SS) - beides moeglich.</p>
                 </>}
 
                 {/* OUTDOOR */}
